@@ -1,0 +1,30 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #222;
+    color: white;
+    margin: 0;
+    padding: 20px;
+}
+
+#area-juego {
+    width: 90%;
+    height: 60vh;
+    background-color: #333;
+    border: 3px solid #555;
+    border-radius: 10px;
+    margin: 20px auto;
+    position: relative;
+    overflow: hidden; /* Para que el pollito no se salga de la caja */
+}
+
+#objetivo {
+    font-size: 40px;
+    position: absolute;
+    cursor: pointer;
+    user-select: none; /* Evita que el texto se seleccione al hacer clics rápidos */
+}
+
+.oculto {
+    display: none;
+}
