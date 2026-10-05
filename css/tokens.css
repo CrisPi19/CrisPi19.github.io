@@ -1,0 +1,143 @@
+/*
+ * Tokens de diseño: la única fuente de colores, tipografía y espaciado.
+ * Los módulos nunca escriben colores "a mano": usan estas variables.
+ *
+ * Modo oscuro: se activa por preferencia del sistema, salvo que el usuario
+ * haya elegido un tema explícito (atributo data-theme en <html>, ver js/theme.js).
+ */
+:root {
+  color-scheme: light;
+
+  /* Superficies y texto */
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #efece4;
+  --border: #ddd8cc;
+  --text: #1f1d1a;
+  --text-muted: #6d685f;
+
+  /* Acento (identidad del sitio) */
+  --accent: #4253c9;
+  --accent-strong: #2f3da3;
+  --accent-soft: #e3e6fb;
+  --on-accent: #ffffff;
+
+  /* Estados de feedback */
+  --ok: #2b8a3e;
+  --ok-soft: #d3f0da;
+  --bad: #c92a2a;
+  --bad-soft: #fbdcdc;
+  --miss: #e67700;
+  --miss-soft: #ffe8cc;
+
+  /* Piano */
+  --key-white: #fdfcf9;
+  --key-white-edge: #cfc9bc;
+  --key-black: #22201d;
+  --key-black-top: #3a3732;
+  --key-selected: #8d9bf0;
+  --key-selected-black: #5566d6;
+
+  /* Cajas de repetición espaciada (1 = flojo … 5 = dominado) */
+  --box-0: #e7e3da;
+  --box-1: #f3b3a8;
+  --box-2: #f6cf94;
+  --box-3: #e9e08f;
+  --box-4: #b7dd9a;
+  --box-5: #74c48a;
+
+  /* Tipografía */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.75rem;
+  --fs-chord: clamp(3rem, 12vw, 5.5rem);
+
+  /* Espaciado (escala de 4 px) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 16px rgb(0 0 0 / 0.06);
+  --maxw: 960px;
+}
+
+/* Oscuro por preferencia del sistema (si el usuario no forzó "light") */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #131316;
+    --surface: #1c1c21;
+    --surface-2: #26262d;
+    --border: #34343d;
+    --text: #ecebe7;
+    --text-muted: #9c9a93;
+    --accent: #8796ff;
+    --accent-strong: #a9b4ff;
+    --accent-soft: #272c52;
+    --on-accent: #10121f;
+    --ok: #5fcf78;
+    --ok-soft: #1d3a25;
+    --bad: #ff7272;
+    --bad-soft: #4a2124;
+    --miss: #ffae4d;
+    --miss-soft: #47321a;
+    --key-white: #e9e7e1;
+    --key-white-edge: #8f8b82;
+    --key-black: #0b0b0d;
+    --key-black-top: #2a2a30;
+    --key-selected: #8796ff;
+    --key-selected-black: #6273f0;
+    --box-0: #2c2c33;
+    --box-1: #7a3b35;
+    --box-2: #7d5a2b;
+    --box-3: #6f6a2a;
+    --box-4: #3f6a35;
+    --box-5: #2f7f48;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
+  }
+}
+
+/* Oscuro forzado por el usuario */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #131316;
+  --surface: #1c1c21;
+  --surface-2: #26262d;
+  --border: #34343d;
+  --text: #ecebe7;
+  --text-muted: #9c9a93;
+  --accent: #8796ff;
+  --accent-strong: #a9b4ff;
+  --accent-soft: #272c52;
+  --on-accent: #10121f;
+  --ok: #5fcf78;
+  --ok-soft: #1d3a25;
+  --bad: #ff7272;
+  --bad-soft: #4a2124;
+  --miss: #ffae4d;
+  --miss-soft: #47321a;
+  --key-white: #e9e7e1;
+  --key-white-edge: #8f8b82;
+  --key-black: #0b0b0d;
+  --key-black-top: #2a2a30;
+  --key-selected: #8796ff;
+  --key-selected-black: #6273f0;
+  --box-0: #2c2c33;
+  --box-1: #7a3b35;
+  --box-2: #7d5a2b;
+  --box-3: #6f6a2a;
+  --box-4: #3f6a35;
+  --box-5: #2f7f48;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
+}
