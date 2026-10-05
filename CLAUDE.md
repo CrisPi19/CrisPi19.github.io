@@ -22,8 +22,6 @@ responder al usuario y lo corrige al instante.
 - Entrada por teclado MIDI real con la **Web MIDI API** (Chrome/Edge en computador).
   Siempre debe existir un teclado en pantalla como alternativa (clic/toque).
 - Progreso y estadísticas del usuario en `localStorage` (envolver en try/catch).
-- El repositorio es **público**: no subir partituras con derechos de autor. Las partituras
-  se cargan con un botón y se procesan solo en el navegador.
 
 ## Módulos (en orden de construcción)
 1. **Entrenador de acordes**: muestra un nombre de acorde, el usuario marca o toca las teclas,
