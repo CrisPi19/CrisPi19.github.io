@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrenador de acordes</title>
+  <meta name="description" content="Ves un nombre de acorde y marcas sus teclas en el piano.">
+  <script src="../../js/theme.js"></script>
+  <link rel="stylesheet" href="../../css/tokens.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/keyboard.css">
+  <link rel="stylesheet" href="acordes.css">
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="back-link" href="../../">← Inicio</a>
+      <h1 class="site-title">Entrenador de acordes</h1>
+      <button class="icon-btn" type="button" id="sound-toggle"></button>
+      <button class="icon-btn" type="button" data-theme-toggle></button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card trainer">
+      <div class="prompt">
+        <p class="prompt-label muted">Marca las teclas de</p>
+        <h2 class="chord-name" id="chord-name">–</h2>
+        <p class="chord-type muted" id="chord-type"></p>
+        <p class="timer" id="timer" aria-hidden="true">0,0 s</p>
+      </div>
+
+      <div id="keyboard"></div>
+
+      <div class="actions">
+        <button class="btn" type="button" id="clear-btn">Borrar <kbd>Esc</kbd></button>
+        <button class="btn" type="button" id="listen-btn">Escuchar <kbd>Espacio</kbd></button>
+        <button class="btn btn-primary" type="button" id="main-btn">Comprobar <kbd>Enter</kbd></button>
+      </div>
+
+      <div class="feedback" id="feedback" aria-live="polite" hidden></div>
+    </section>
+
+    <section class="session" aria-label="Sesión actual">
+      <div class="stat"><span class="stat-value" id="stat-score">0/0</span><span class="stat-label">aciertos</span></div>
+      <div class="stat"><span class="stat-value" id="stat-streak">0</span><span class="stat-label">racha</span></div>
+      <div class="stat"><span class="stat-value" id="stat-avg">–</span><span class="stat-label">tiempo medio</span></div>
+    </section>
+
+    <details class="card panel" id="config-panel">
+      <summary>Qué practicar</summary>
+      <div class="panel-body">
+        <div id="type-options"></div>
+        <fieldset class="option-group">
+          <legend>Tónicas</legend>
+          <div class="chips" id="root-options"></div>
+          <div class="quick">
+            <button class="btn btn-sm" type="button" data-roots="all">Todas</button>
+            <button class="btn btn-sm" type="button" data-roots="naturals">Solo naturales</button>
+          </div>
+        </fieldset>
+        <p class="muted small" id="config-count"></p>
+      </div>
+    </details>
+
+    <details class="card panel" id="progress-panel">
+      <summary>Progreso</summary>
+      <div class="panel-body">
+        <p class="small muted">
+          Cada celda es un acorde. El color indica su caja de repetición: los de la caja 1
+          aparecen a menudo; los de la caja 5 ya los dominas y salen poco.
+        </p>
+        <div class="legend" id="legend"></div>
+        <p class="small" id="progress-summary"></p>
+        <div class="progress-scroll"><div class="progress-grid" id="progress-grid"></div></div>
+        <button class="btn btn-sm" type="button" id="reset-btn">Reiniciar progreso</button>
+      </div>
+    </details>
+  </main>
+
+  <script type="module" src="acordes.js"></script>
+</body>
+</html>
