@@ -37,6 +37,8 @@
   --key-black-top: #3a3732;
   --key-selected: #8d9bf0;
   --key-selected-black: #5566d6;
+  --key-missing: #ffe0b8;
+  --key-missing-text: #9a4f00;
 
   /* Cajas de repetición espaciada (1 = flojo … 5 = dominado) */
   --box-0: #e7e3da;
@@ -98,6 +100,8 @@
     --key-black-top: #2a2a30;
     --key-selected: #8796ff;
     --key-selected-black: #6273f0;
+    --key-missing: #f7cf9c;
+    --key-missing-text: #8a4500;
     --box-0: #2c2c33;
     --box-1: #7a3b35;
     --box-2: #7d5a2b;
@@ -133,6 +137,8 @@
   --key-black-top: #2a2a30;
   --key-selected: #8796ff;
   --key-selected-black: #6273f0;
+  --key-missing: #f7cf9c;
+  --key-missing-text: #8a4500;
   --box-0: #2c2c33;
   --box-1: #7a3b35;
   --box-2: #7d5a2b;

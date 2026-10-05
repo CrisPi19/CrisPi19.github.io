@@ -39,7 +39,7 @@ a {
   width: 100%;
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 0 var(--sp-4);
+  padding-inline: var(--sp-4);
 }
 
 .site-header {
@@ -61,6 +61,12 @@ a {
   margin: 0;
   flex: 1;
   min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .site-title {
+    font-size: var(--fs-base);
+  }
 }
 
 .site-title a {
