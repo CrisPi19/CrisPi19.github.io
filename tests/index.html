@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruebas</title>
+  <script src="../js/theme.js"></script>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <style>
+    .summary { font-size: var(--fs-lg); font-weight: 600; }
+    .pass { color: var(--ok); }
+    .fail { color: var(--bad); }
+    #results { list-style: none; padding: 0; font-family: var(--font-mono); font-size: var(--fs-sm); }
+    #results li { padding: 2px 0; }
+    #results pre { margin: 2px 0 6px 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Pruebas de lógica</h1>
+    <p id="summary" class="summary">Ejecutando…</p>
+    <ul id="results"></ul>
+  </main>
+  <script type="module" src="tests.js"></script>
+</body>
+</html>
