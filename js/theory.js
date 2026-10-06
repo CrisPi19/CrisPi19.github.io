@@ -34,12 +34,12 @@ export const CHORD_TYPES = {
   aug:  { symbol: 'aug',  name: 'Aumentado',         group: 'triadas',    degrees: ['1', '3', '#5'] },
   sus2: { symbol: 'sus2', name: 'Suspendido 2',      group: 'suspendidos', degrees: ['1', '2', '5'] },
   sus4: { symbol: 'sus4', name: 'Suspendido 4',      group: 'suspendidos', degrees: ['1', '4', '5'] },
-  m6:   { symbol: 'm6',   name: 'Menor sexta',       group: 'cuatriadas', degrees: ['1', 'b3', '5', '6'] },
   maj7: { symbol: 'maj7', name: 'Mayor séptima',     group: 'cuatriadas', degrees: ['1', '3', '5', '7'] },
   dom7: { symbol: '7',    name: 'Dominante',         group: 'cuatriadas', degrees: ['1', '3', '5', 'b7'] },
   m7:   { symbol: 'm7',   name: 'Menor séptima',     group: 'cuatriadas', degrees: ['1', 'b3', '5', 'b7'] },
   m7b5: { symbol: 'm7b5', name: 'Semidisminuido',    group: 'cuatriadas', degrees: ['1', 'b3', 'b5', 'b7'] },
   dom9: { symbol: '9',    name: 'Dominante novena',  group: 'extensiones', degrees: ['1', '3', '5', 'b7', '9'] },
+  m69:  { symbol: 'm6/9', name: 'Menor seis nueve',  group: 'extensiones', degrees: ['1', 'b3', '5', '6', '9'] },
 };
 
 export const CHORD_GROUPS = {
@@ -202,9 +202,13 @@ export function analyzeAnswer(midiNotes, root, typeId) {
   }
 
   const inversion = correct ? bass.index : null;
-  const slashName = correct && inversion > 0
-    ? `${chordName(root, typeId)}/${displayNote(spellChord(root, typeId)[inversion])}`
-    : null;
+  let slashName = null;
+  if (correct && inversion > 0) {
+    // Si el símbolo ya lleva "/" (m6/9), se agrupa con paréntesis: (Am6/9)/C.
+    const name = chordName(root, typeId);
+    const head = type.symbol.includes('/') ? `(${name})` : name;
+    slashName = `${head}/${displayNote(spellChord(root, typeId)[inversion])}`;
+  }
 
   return { correct, missing, extra, degreeOf, bass, inversion, slashName };
 }

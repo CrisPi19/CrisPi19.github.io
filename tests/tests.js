@@ -54,7 +54,8 @@ const spellings = [
   ['C', 'dom9', ['C', 'E', 'G', 'Bb', 'D']],
   ['D', 'sus4', ['D', 'G', 'A']],
   ['E', 'sus2', ['E', 'F#', 'B']],
-  ['A', 'm6', ['A', 'C', 'E', 'F#']],
+  ['A', 'm69', ['A', 'C', 'E', 'F#', 'B']],
+  ['Eb', 'm69', ['Eb', 'Gb', 'Bb', 'C', 'F']],
   ['B', 'm7b5', ['B', 'D', 'F', 'A']],
   ['Db', 'maj', ['Db', 'F', 'Ab']],
 ];
@@ -94,6 +95,11 @@ test('Fmaj7 en 1.ª inversión (A en el bajo) es correcto y se informa', () => {
 test('Fmaj7 en 3.ª inversión (E en el bajo)', () => {
   const r = analyzeAnswer([52, 53, 57, 60], 'F', 'maj7');
   eq([r.correct, r.inversion, r.slashName], [true, 3, 'Fmaj7/E']);
+});
+
+test('Am6/9 invertido se nombra con paréntesis: (Am6/9)/C', () => {
+  const r = analyzeAnswer([48, 52, 54, 57, 59], 'A', 'm69'); // C E F# A B
+  eq([r.correct, r.inversion, r.slashName], [true, 1, '(Am6/9)/C']);
 });
 
 test('octavas duplicadas siguen siendo correctas', () => {
