@@ -1,0 +1,36 @@
+GIMP Palette
+Name: CrisPianist
+Columns: 8
+#
+ 46  25  21	wood-0
+ 90  49  34	wood-1
+138  79  47	wood-2
+189 125  69	wood-3
+ 36  32  44	stone-0
+ 56  50  63	stone-1
+ 84  77  92	stone-2
+ 13  16  38	night-0
+ 27  35  80	night-1
+ 47  69 144	night-2
+111 147 224	night-3
+185 166 130	ivory-0
+233 220 186	ivory-1
+255 246 223	ivory-2
+ 10   9  14	ink
+ 37  34  44	key-black
+ 75  70  87	key-black-hi
+ 43  37  53	dog-outline
+166 163 182	dog-0
+213 211 224	dog-1
+245 244 249	dog-2
+ 21  18  26	nose-black
+111  63  41	nose-brown
+255 210  63	fx-gold
+255 111 174	fx-pink
+ 79 227 223	fx-cyan
+255 251 230	fx-white
+ 29 115  57	ok-0
+ 67 196  99	ok-1
+140  29  42	bad-0
+232  70  63	bad-1
+255 156  47	miss

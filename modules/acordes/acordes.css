@@ -1,106 +1,57 @@
-/* Estilos propios del entrenador de acordes. */
+/* Estilos del entrenador de acordes (HTML alrededor del canvas). */
 
-.trainer {
+/* ---------- Escenario del canvas ---------- */
+
+.stage {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
+  justify-content: center;
+  padding: var(--sp-4) var(--sp-2) var(--sp-3);
 }
 
-.prompt {
-  text-align: center;
+.screen {
+  display: block;
+  image-rendering: crisp-edges; /* Firefox */
+  image-rendering: pixelated; /* Chrome, Edge, Safari */
+  box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--wood-1), 0 0 0 6px var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-.prompt-label {
-  margin: 0;
-  font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+/* ---------- Controles ---------- */
 
-.chord-name {
-  font-family: var(--font-display);
-  font-size: var(--fs-chord);
-  font-weight: 600;
-  line-height: 1.05;
-  margin: var(--sp-2) 0 0;
-}
-
-.chord-name .quality {
-  font-size: 0.55em;
-  vertical-align: 0.55em;
-  margin-left: 0.04em;
-}
-
-.chord-name.is-new {
-  animation: chord-in 0.25s ease-out;
-}
-
-@keyframes chord-in {
-  from { opacity: 0; transform: translateY(6px); }
-}
-
-.chord-type {
-  margin: 0;
-}
-
-.timer {
-  margin: var(--sp-1) 0 0;
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
-}
-
-.actions {
+.controls {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
   justify-content: center;
+  margin-bottom: var(--sp-4);
 }
 
-.actions .btn-primary {
-  min-width: 160px;
-}
-
-.actions kbd {
-  background: transparent;
-  color: inherit;
-  opacity: 0.7;
-  border-color: currentColor;
+.controls .btn-primary {
+  min-width: 170px;
 }
 
 @media (max-width: 520px) {
-  .actions kbd { display: none; }
-  .actions .btn { flex: 1; }
-  .actions .btn-primary { flex-basis: 100%; }
+  .controls kbd { display: none; }
+  .controls .btn { flex: 1; }
+  .controls .btn-primary { flex-basis: 100%; }
 }
 
-/* ---------- Feedback ---------- */
+/* ---------- Explicación ---------- */
 
 .feedback {
-  border-radius: var(--radius-sm);
-  padding: var(--sp-4);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  margin-bottom: var(--sp-4);
 }
 
-.feedback.is-correct {
-  background: var(--ok-soft);
-  border-color: var(--ok);
-}
-
-.feedback.is-wrong {
-  background: var(--bad-soft);
-  border-color: var(--bad);
-}
+.feedback.is-correct { border-color: var(--ok-0); }
+.feedback.is-wrong { border-color: var(--bad-0); }
 
 .feedback-title {
   font-weight: 700;
-  font-size: var(--fs-lg);
-  margin: 0 0 var(--sp-2);
+  font-size: 20px;
+  color: var(--text-strong);
+  margin-bottom: var(--sp-2);
 }
-
-.is-correct .feedback-title { color: var(--ok); }
-.is-wrong .feedback-title { color: var(--bad); }
 
 .chord-notes {
   display: flex;
@@ -115,49 +66,32 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  background: var(--ivory-1);
+  color: var(--ink);
 }
 
-.chord-notes .note {
-  font-weight: 700;
-}
-
-.chord-notes .degree {
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
-}
+.chord-notes .note { font-weight: 700; }
+.chord-notes .degree { font-size: 14px; color: var(--stone-2); }
 
 .chord-notes li.is-missing {
-  border-color: var(--miss);
-  box-shadow: inset 0 0 0 1px var(--miss);
-}
-
-.feedback p {
-  margin: 0 0 var(--sp-1);
+  background: var(--miss);
 }
 
 .feedback .inversion {
   padding: var(--sp-2) var(--sp-3);
-  margin: var(--sp-2) 0;
-  border-left: 3px solid var(--accent);
-  background: var(--surface);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-left: 4px solid var(--night-3);
+  background: var(--stone-1);
 }
 
-.small {
-  font-size: var(--fs-sm);
-}
-
-/* ---------- Estadísticas de sesión ---------- */
+/* ---------- Sesión ---------- */
 
 .session {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-3);
-  margin: var(--sp-4) 0;
+  margin-bottom: var(--sp-4);
 }
 
 .stat {
@@ -165,38 +99,40 @@
   flex-direction: column;
   align-items: center;
   padding: var(--sp-3);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
 }
 
 .stat-value {
-  font-family: var(--font-display);
-  font-size: var(--fs-xl);
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-strong);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: var(--fs-sm);
+  font-size: 14px;
   color: var(--text-muted);
 }
 
 /* ---------- Paneles plegables ---------- */
 
-.panel {
+.fold {
   padding: 0;
-  margin-bottom: var(--sp-3);
+  margin-bottom: var(--sp-4);
 }
 
-.panel summary {
+.fold summary {
   cursor: pointer;
-  padding: var(--sp-4) var(--sp-5);
-  font-weight: 600;
+  padding: var(--sp-3) var(--sp-4);
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
-.panel-body {
-  padding: 0 var(--sp-5) var(--sp-5);
+.fold summary:focus-visible {
+  outline: 2px solid var(--fx-gold);
+}
+
+.fold-body {
+  padding: 0 var(--sp-4) var(--sp-4);
 }
 
 .option-group {
@@ -206,10 +142,11 @@
 }
 
 .option-group legend {
-  font-weight: 600;
-  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-size: 14px;
   margin-bottom: var(--sp-2);
   padding: 0;
+  color: var(--text-muted);
 }
 
 .chips {
@@ -224,31 +161,29 @@
 
 .chip input {
   position: absolute;
-  opacity: 0;
   inset: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
 .chip span {
   display: inline-block;
   min-width: 44px;
-  padding: 6px 12px;
+  padding: 2px 10px;
   text-align: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  font-size: var(--fs-sm);
+  border: 2px solid var(--ink);
+  background: var(--stone-1);
+  color: var(--text-muted);
 }
 
 .chip input:checked + span {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--night-2);
+  color: var(--ivory-2);
+  box-shadow: inset 2px 2px 0 var(--night-3);
 }
 
 .chip input:focus-visible + span {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--fx-gold);
   outline-offset: 2px;
 }
 
@@ -264,7 +199,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-3);
-  font-size: var(--fs-sm);
+  font-size: 14px;
   margin-bottom: var(--sp-3);
 }
 
@@ -274,11 +209,9 @@
   gap: 6px;
 }
 
-.legend i {
+.legend .cell {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
-  border: 1px solid var(--border);
 }
 
 .progress-scroll {
@@ -288,18 +221,16 @@
 
 .progress-grid {
   display: grid;
-  grid-template-columns: 56px repeat(12, minmax(26px, 1fr));
-  gap: 3px;
-  min-width: 400px;
-  font-size: 0.75rem;
+  grid-template-columns: 56px repeat(12, minmax(24px, 1fr));
+  gap: 2px;
+  min-width: 380px;
+  font-size: 12px;
 }
 
 .progress-grid .head {
   display: grid;
   place-items: center;
-  font-weight: 600;
   color: var(--text-muted);
-  padding: 2px 0;
 }
 
 .progress-grid .row-head {
@@ -307,18 +238,15 @@
 }
 
 .cell {
-  height: 26px;
-  border-radius: 4px;
-  border: 1px solid transparent;
+  display: inline-block;
+  height: 24px;
+  border: 2px solid var(--ink);
 }
 
-.cell.is-off {
-  opacity: 0.3;
-}
-
-.cell[data-box="0"] { background: var(--box-0); }
-.cell[data-box="1"] { background: var(--box-1); }
-.cell[data-box="2"] { background: var(--box-2); }
-.cell[data-box="3"] { background: var(--box-3); }
-.cell[data-box="4"] { background: var(--box-4); }
-.cell[data-box="5"] { background: var(--box-5); }
+.cell.is-off { opacity: 0.3; }
+.cell[data-box="0"] { background: var(--stone-1); }
+.cell[data-box="1"] { background: var(--bad-0); }
+.cell[data-box="2"] { background: var(--miss); }
+.cell[data-box="3"] { background: var(--fx-gold); }
+.cell[data-box="4"] { background: var(--ok-0); }
+.cell[data-box="5"] { background: var(--ok-1); }

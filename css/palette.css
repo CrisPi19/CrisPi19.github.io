@@ -1,0 +1,35 @@
+/* Generado por tools/export-palette.py desde js/engine/palette.js. No editar a mano. */
+:root {
+  --wood-0: #2e1915;
+  --wood-1: #5a3122;
+  --wood-2: #8a4f2f;
+  --wood-3: #bd7d45;
+  --stone-0: #24202c;
+  --stone-1: #38323f;
+  --stone-2: #544d5c;
+  --night-0: #0d1026;
+  --night-1: #1b2350;
+  --night-2: #2f4590;
+  --night-3: #6f93e0;
+  --ivory-0: #b9a682;
+  --ivory-1: #e9dcba;
+  --ivory-2: #fff6df;
+  --ink: #0a090e;
+  --key-black: #25222c;
+  --key-black-hi: #4b4657;
+  --dog-outline: #2b2535;
+  --dog-0: #a6a3b6;
+  --dog-1: #d5d3e0;
+  --dog-2: #f5f4f9;
+  --nose-black: #15121a;
+  --nose-brown: #6f3f29;
+  --fx-gold: #ffd23f;
+  --fx-pink: #ff6fae;
+  --fx-cyan: #4fe3df;
+  --fx-white: #fffbe6;
+  --ok-0: #1d7339;
+  --ok-1: #43c463;
+  --bad-0: #8c1d2a;
+  --bad-1: #e8463f;
+  --miss: #ff9c2f;
+}

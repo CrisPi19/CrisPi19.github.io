@@ -7,6 +7,12 @@ import {
   rootPositionVoicing, notePc, displayNote, parseDegree, CHORD_TYPES, ROOTS,
 } from '../js/theory.js';
 import { grade, pickNext, createItem, MAX_BOX } from '../js/srs.js';
+import { COLORS, C } from '../js/engine/palette.js';
+import { missingChars, measure } from '../js/engine/font.js';
+import { screenToLogical } from '../js/engine/input.js';
+import { buildKeys, hitTest, computeMarks, MARK } from '../js/layers/piano.js';
+import { EventBus } from '../js/events.js';
+import { Trainer } from '../js/trainer.js';
 
 const results = [];
 
@@ -140,6 +146,145 @@ test('pickNext favorece cajas bajas', () => {
   const items = { a: { box: 1 }, b: { box: 5 } }; // pesos 16 y 1
   eq(pickNext(['a', 'b'], items, { random: () => 0.9 }), 'a'); // 0.9 * 17 = 15.3 < 16
   eq(pickNext(['a', 'b'], items, { random: () => 0.99 }), 'b'); // 16.83 > 16
+});
+
+/* ---------- Paleta ---------- */
+
+test('la paleta tiene 32 colores hex válidos y distintos', () => {
+  eq(COLORS.length, 32);
+  if (!COLORS.every((c) => /^#[0-9a-f]{6}$/i.test(c.hex))) throw new Error('hex inválido');
+  eq(new Set(COLORS.map((c) => c.hex.toLowerCase())).size, 32);
+  eq(new Set(COLORS.map((c) => c.name)).size, 32);
+});
+
+test('índices con nombre: C.INK apunta a "ink"', () => eq(COLORS[C.INK].name, 'ink'));
+
+/* ---------- Fuente bitmap ---------- */
+
+test('la fuente cubre español y música', () => {
+  eq(missingChars('ABCDEFGHIJKLMNÑOPQRSTUVWXYZ abcdefghijklmnñopqrstuvwxyz 0123456789'), []);
+  eq(missingChars('ÁÉÍÓÚÜ áéíóúü ¿? ¡! .,:;-+=/()\'·%ª º ♭♯𝄫𝄪'), []);
+});
+
+test('la fuente cubre todos los nombres de acordes, notas y textos del canvas', () => {
+  for (const root of ROOTS) {
+    for (const type of Object.keys(CHORD_TYPES)) {
+      const texts = [chordName(root, type), CHORD_TYPES[type].name, ...spellChord(root, type).map(displayNote)];
+      for (const t of texts) {
+        const missing = missingChars(t);
+        if (missing.length) throw new Error(`"${t}" usa ${missing.join(' ')}`);
+      }
+    }
+  }
+  eq(missingChars('¡Correcto! No es correcto · 1.ª inversión: (Am6/9)/C · Marca al menos una tecla.'), []);
+});
+
+test('measure: ancho proporcional con 1 px entre letras', () => {
+  eq(measure('A'), 5);
+  eq(measure('AI'), 5 + 1 + 3);
+  eq(measure('A', 3), 15);
+});
+
+/* ---------- Teclado: geometría y clics ---------- */
+
+const keys = buildKeys();
+const keyOf = (midi) => keys.find((k) => k.midi === midi);
+
+test('buildKeys: 25 teclas, 15 blancas de 20 px desde x = 10', () => {
+  eq(keys.length, 25);
+  const whites = keys.filter((k) => !k.black);
+  eq([whites.length, whites[0].x, whites[14].x + whites[14].w], [15, 10, 310]);
+});
+
+test('las negras van sobre la unión correcta (C♯ entre C y D)', () => {
+  const cs = keyOf(49);
+  if (!(cs.x < 30 && cs.x + cs.w > 30)) throw new Error(`C#3 en x=${cs.x}`);
+});
+
+test('hitTest: arriba en la zona de una negra gana la negra', () => {
+  const cs = keyOf(49);
+  eq(hitTest(keys, cs.x + 2, cs.y + 5), 49);
+});
+
+test('hitTest: abajo, a la misma altura x, se toca la blanca', () => {
+  const cs = keyOf(49);
+  eq(hitTest(keys, cs.x + 2, cs.y + cs.h + 5), 48); // C3 (la negra no llega tan abajo)
+});
+
+test('hitTest: fuera del teclado devuelve -1', () => {
+  eq([hitTest(keys, 5, 150), hitTest(keys, 100, 50)], [-1, -1]);
+});
+
+test('screenToLogical: canvas a ×4 desplazado en la página', () => {
+  const out = { x: 0, y: 0 };
+  const rect = { left: 100, top: 50, width: 1280, height: 720 };
+  eq([screenToLogical(100 + 4 * 37 + 3, 50 + 4 * 150 + 1, rect, out), out.x, out.y], [true, 37, 150]);
+  eq(screenToLogical(90, 60, rect, out), false);
+});
+
+test('computeMarks: correctas con grado, sobrantes con nombre, faltantes en naranja', () => {
+  const notes = [53, 57, 63]; // F A Eb, para Fmaj7 (faltan C y E)
+  const { marks, labels } = computeMarks(notes, analyzeAnswer(notes, 'F', 'maj7'), 'F', 'maj7');
+  eq([marks.get(53), marks.get(57), marks.get(63)], [MARK.CORRECT, MARK.CORRECT, MARK.WRONG]);
+  eq([labels.get(53), labels.get(57), labels.get(63)], ['1', '3', 'D♯']);
+  eq([marks.get(60), marks.get(64), labels.get(64)], [MARK.MISSING, MARK.MISSING, '7']);
+});
+
+/* ---------- Entrenador (lógica + eventos) ---------- */
+
+function makeTrainer() {
+  const bus = new EventBus();
+  const log = [];
+  for (const type of ['exercise:new', 'note:on', 'selection:change', 'answer:empty', 'answer:correct', 'answer:wrong']) {
+    bus.on(type, (d) => log.push([type, d]));
+  }
+  let clock = 0;
+  const trainer = new Trainer({ bus, persist: false, now: () => clock, random: () => 0 });
+  trainer.setConfig({ types: ['maj7'], roots: ['F'] });
+  return { trainer, log, tick: (ms) => { clock += ms; } };
+}
+
+test('trainer: next() publica el ejercicio', () => {
+  const { trainer, log } = makeTrainer();
+  trainer.next();
+  eq([trainer.phase, trainer.current.id, log.some(([t]) => t === 'exercise:new')], ['asking', 'F|maj7', true]);
+});
+
+test('trainer: noteOn alterna la selección y selection:change no revela si es correcta', () => {
+  const { trainer, log } = makeTrainer();
+  trainer.next();
+  trainer.noteOn(53);
+  trainer.noteOn(57);
+  trainer.noteOn(57);
+  eq(trainer.getSelected(), [53]);
+  const last = log.filter(([t]) => t === 'selection:change').pop()[1];
+  eq(Object.keys(last).sort(), ['count', 'notes']);
+});
+
+test('trainer: submit correcto en inversión publica answer:correct con el tiempo', () => {
+  const { trainer, log, tick } = makeTrainer();
+  trainer.next();
+  [57, 60, 64, 65].forEach((m) => trainer.noteOn(m));
+  tick(3000);
+  const d = trainer.submit();
+  eq([d.result.correct, d.result.slashName, d.timeMs, trainer.phase], [true, 'Fmaj7/A', 3000, 'answered']);
+  eq(log[log.length - 1][0], 'answer:correct');
+});
+
+test('trainer: sin notas publica answer:empty y sigue preguntando', () => {
+  const { trainer, log } = makeTrainer();
+  trainer.next();
+  eq([trainer.submit(), trainer.phase, log[log.length - 1][0]], [null, 'asking', 'answer:empty']);
+});
+
+test('trainer: después de responder, noteOn suena pero no cambia la selección', () => {
+  const { trainer, log } = makeTrainer();
+  trainer.next();
+  trainer.noteOn(53);
+  trainer.submit();
+  const before = log.length;
+  trainer.noteOn(60);
+  eq([trainer.getSelected(), log.slice(before).map(([t]) => t)], [[53], ['note:on']]);
 });
 
 /* ---------- Mostrar resultados ---------- */

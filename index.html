@@ -3,29 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Entrenador de piano</title>
-  <meta name="description" content="Practica acordes, lectura, intervalos y escalas en el piano.">
-  <script src="js/theme.js"></script>
-  <link rel="stylesheet" href="css/tokens.css">
+  <title>CrisPianist</title>
+  <meta name="description" content="CrisPianist: practica acordes, lectura, intervalos y escalas en el piano.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/pixelify-sans@5.3.0/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/pixelify-sans@5.3.0/700.css">
+  <link rel="stylesheet" href="css/palette.css">
   <link rel="stylesheet" href="css/base.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="container">
-      <h1 class="site-title"><a href="./">Entrenador de piano</a></h1>
-      <button class="icon-btn" type="button" data-theme-toggle></button>
-    </div>
-  </header>
-
   <main class="container">
     <section class="hero">
-      <h2>Nombre ↔ teclas ↔ pentagrama</h2>
-      <p class="muted">Ejercicios cortos que te hacen responder y te corrigen al instante.</p>
+      <h1 class="logo">CrisPianist</h1>
+      <p>Nombre ↔ teclas ↔ pentagrama. Ejercicios cortos que te corrigen al instante.</p>
     </section>
 
     <ul class="module-grid">
       <li>
-        <a class="module-card" href="modules/acordes/">
+        <a class="module-card panel" href="modules/acordes/">
           <span class="num">01</span>
           <h3>Entrenador de acordes</h3>
           <p>Ves un nombre de acorde y marcas sus teclas. Los acordes que fallas o tocas lento vuelven más seguido.</p>
@@ -33,7 +27,7 @@
         </a>
       </li>
       <li>
-        <div class="module-card is-disabled">
+        <div class="module-card panel is-disabled">
           <span class="num">02</span>
           <h3>Conexión MIDI</h3>
           <p>Usa tu teclado MIDI real como entrada en todos los módulos.</p>
@@ -41,7 +35,7 @@
         </div>
       </li>
       <li>
-        <div class="module-card is-disabled">
+        <div class="module-card panel is-disabled">
           <span class="num">03</span>
           <h3>Explorador</h3>
           <p>Elige tónica y tipo: teclas con su función, pentagrama y sonido a la vez.</p>
@@ -49,7 +43,7 @@
         </div>
       </li>
       <li>
-        <div class="module-card is-disabled">
+        <div class="module-card panel is-disabled">
           <span class="num">04</span>
           <h3>Lectura</h3>
           <p>Una nota en el pentagrama: toca la tecla correcta. Clave de sol y luego de fa.</p>
@@ -57,7 +51,7 @@
         </div>
       </li>
       <li>
-        <div class="module-card is-disabled">
+        <div class="module-card panel is-disabled">
           <span class="num">05</span>
           <h3>Intervalos y escalas</h3>
           <p>Ejercicios visuales y de oído.</p>
@@ -65,7 +59,7 @@
         </div>
       </li>
       <li>
-        <div class="module-card is-disabled">
+        <div class="module-card panel is-disabled">
           <span class="num">06</span>
           <h3>Práctica con MusicXML</h3>
           <p>Sube una partitura y avanza nota a nota a medida que la tocas bien.</p>
