@@ -150,11 +150,11 @@ test('pickNext favorece cajas bajas', () => {
 
 /* ---------- Paleta ---------- */
 
-test('la paleta tiene 32 colores hex válidos y distintos', () => {
-  eq(COLORS.length, 32);
+test('la paleta tiene 30 colores hex válidos y distintos (2 reservados)', () => {
+  eq(COLORS.length, 30);
   if (!COLORS.every((c) => /^#[0-9a-f]{6}$/i.test(c.hex))) throw new Error('hex inválido');
-  eq(new Set(COLORS.map((c) => c.hex.toLowerCase())).size, 32);
-  eq(new Set(COLORS.map((c) => c.name)).size, 32);
+  eq(new Set(COLORS.map((c) => c.hex.toLowerCase())).size, 30);
+  eq(new Set(COLORS.map((c) => c.name)).size, 30);
 });
 
 test('índices con nombre: C.INK apunta a "ink"', () => eq(COLORS[C.INK].name, 'ink'));
@@ -285,6 +285,33 @@ test('trainer: después de responder, noteOn suena pero no cambia la selección'
   const before = log.length;
   trainer.noteOn(60);
   eq([trainer.getSelected(), log.slice(before).map(([t]) => t)], [[53], ['note:on']]);
+});
+
+test('trainer: la pausa congela el cronómetro y el tiempo en pausa no cuenta', () => {
+  const { trainer, tick } = makeTrainer();
+  trainer.next();
+  trainer.noteOn(53);
+  tick(1000);
+  trainer.setPaused(true);
+  tick(60000);
+  eq(trainer.elapsedMs(), 1000);
+  trainer.setPaused(false);
+  tick(500);
+  eq(trainer.submit().timeMs, 1500);
+});
+
+test('trainer: en pausa no entran notas, borrados ni respuestas', () => {
+  const { trainer, log } = makeTrainer();
+  trainer.next();
+  trainer.noteOn(53);
+  trainer.togglePause();
+  const before = log.length;
+  trainer.noteOn(57);
+  trainer.clear();
+  eq([trainer.submit(), trainer.getSelected(), log.length - before, trainer.phase], [null, [53], 0, 'asking']);
+  trainer.togglePause();
+  trainer.noteOn(57);
+  eq(trainer.getSelected(), [53, 57]);
 });
 
 /* ---------- Mostrar resultados ---------- */

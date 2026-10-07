@@ -1,7 +1,8 @@
 /*
  * Lógica del entrenador de acordes. Sin DOM ni canvas: solo estado y eventos.
  *
- * Entrada:  next(), noteOn(midi, source), clear(), submit(), setConfig(), resetProgress()
+ * Entrada:  next(), noteOn(midi, source), clear(), submit(), setConfig(), resetProgress(),
+ *           setPaused(bool) / togglePause()
  * Salida:   eventos en el bus (ver lista abajo). Quien dibuja o suena se suscribe.
  *
  * Eventos:
@@ -13,6 +14,10 @@
  *   'answer:wrong'      { …detalle }
  *   'config:change'     { config }
  *   'progress:reset'    {}
+ *   'pause:change'      { paused }
+ *
+ * Pausa: congela el cronómetro (el tiempo en pausa no cuenta para la repetición espaciada)
+ * y bloquea toda entrada de notas y respuestas hasta reanudar.
  */
 import { ROOTS, CHORD_TYPES, analyzeAnswer } from './theory.js';
 import { createItem, grade, pickNext } from './srs.js';
@@ -60,6 +65,8 @@ export class Trainer {
     this.selected = new Set();
     this.startedAt = 0;
     this.answerTimeMs = 0;
+    this.paused = false;
+    this.pausedAt = 0;
     this.session = { attempts: 0, correct: 0, streak: 0, correctMs: 0 };
   }
 
@@ -74,6 +81,7 @@ export class Trainer {
     this.phase = 'asking';
     this.selected.clear();
     this.startedAt = this.now();
+    if (this.paused) this.pausedAt = this.startedAt; // ejercicio nuevo en pausa: empieza en 0
     this.bus.emit('exercise:new', { ...this.current });
     this.emitSelection();
   }
@@ -83,6 +91,7 @@ export class Trainer {
    * Siempre avisa 'note:on' (para que suene); solo cambia la selección mientras se pregunta.
    */
   noteOn(midi, source = 'screen') {
+    if (this.paused) return;
     this.bus.emit('note:on', { midi, source });
     if (this.phase !== 'asking') return;
     if (this.selected.has(midi)) this.selected.delete(midi);
@@ -92,13 +101,13 @@ export class Trainer {
 
   /** Fija la selección completa (útil para MIDI: las teclas que están apretadas). */
   setSelection(notes) {
-    if (this.phase !== 'asking') return;
+    if (this.paused || this.phase !== 'asking') return;
     this.selected = new Set(notes);
     this.emitSelection();
   }
 
   clear() {
-    if (this.phase !== 'asking' || !this.selected.size) return;
+    if (this.paused || this.phase !== 'asking' || !this.selected.size) return;
     this.selected.clear();
     this.emitSelection();
   }
@@ -112,16 +121,16 @@ export class Trainer {
     this.bus.emit('selection:change', { notes, count: notes.length });
   }
 
-  /** Milisegundos del ejercicio actual (se congela al responder). */
+  /** Milisegundos del ejercicio actual (se congela al responder y durante la pausa). */
   elapsedMs() {
-    if (this.phase === 'asking') return this.now() - this.startedAt;
+    if (this.phase === 'asking') return (this.paused ? this.pausedAt : this.now()) - this.startedAt;
     if (this.phase === 'answered') return this.answerTimeMs;
     return 0;
   }
 
   /** Confirma la respuesta. Devuelve el detalle publicado, o null si no correspondía. */
   submit() {
-    if (this.phase !== 'asking') return null;
+    if (this.paused || this.phase !== 'asking') return null;
     const notes = this.getSelected();
     if (!notes.length) {
       this.bus.emit('answer:empty', {});
@@ -155,6 +164,24 @@ export class Trainer {
     };
     this.bus.emit(result.correct ? 'answer:correct' : 'answer:wrong', detail);
     return detail;
+  }
+
+  /**
+   * Pausa o reanuda. Al reanudar, startedAt se corre hacia adelante lo que duró la pausa:
+   * así now() - startedAt sigue midiendo solo el tiempo jugado.
+   */
+  setPaused(paused) {
+    paused = Boolean(paused);
+    if (paused === this.paused) return;
+    const t = this.now();
+    if (paused) this.pausedAt = t;
+    else this.startedAt += t - this.pausedAt;
+    this.paused = paused;
+    this.bus.emit('pause:change', { paused });
+  }
+
+  togglePause() {
+    this.setPaused(!this.paused);
   }
 
   setConfig(next) {

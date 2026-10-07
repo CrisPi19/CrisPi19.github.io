@@ -34,11 +34,18 @@ el título de las páginas y en la interfaz).
 - Repetición espaciada Leitner (cajas 1–5); "rápido" = ≤ 2 s por nota del acorde.
 - **Solo modo oscuro** (la escena es un conservatorio de noche).
 - En celular se acepta el canvas a escala ×1 (teclas pequeñas) por ahora.
-- Accesibilidad: atajos de teclado (Enter, Esc, Espacio); las teclas del canvas no son
+- Accesibilidad: atajos de teclado (Enter, Esc, Espacio, N); las teclas del canvas no son
   elementos accesibles para lectores de pantalla.
+- **Pausa** con la tecla P (o Pausa): no tiene botón ni aparece en pantalla. Al pausar se
+  detiene todo (escena, cronómetro, entrada de notas y botones), se oculta el acorde y el
+  canvas muestra "En pausa" sobre una trama oscura. El tiempo en pausa no cuenta para la
+  repetición espaciada. Lógica en `trainer.setPaused()`; dibujo en `js/engine/pause.js`
+  (común a todos los módulos).
+- **Fondo animado, efectos/partículas y mascotas se hacen al final**, después de terminar
+  los 6 módulos. Mientras tanto las capas existen como placeholders.
 
 ## Módulos (en orden de construcción)
-1. **Entrenador de acordes** ✅ (en migración al sistema pixel art).
+1. **Entrenador de acordes** ✅ (con el sistema pixel art).
 2. **Conexión MIDI**: detectar el teclado y usar sus notas como entrada en todos los módulos.
 3. **Explorador**: eliges tónica y tipo de acorde o escala; se muestran a la vez las teclas
    resaltadas con su función (1, 3, 5, b7…), el pentagrama y el sonido.
@@ -63,12 +70,15 @@ acorde a resolver y el estado de cada tecla se entienden de inmediato.
   El factor se calcula en píxeles físicos (considera `devicePixelRatio`) para que cada
   píxel lógico ocupe exactamente N×N píxeles de pantalla.
 - Todo en coordenadas enteras. Sin subpíxeles, antialiasing, gradientes ni shadowBlur.
-- **Paleta fija de 32 colores** en rampas (madera, piedra, azules nocturnos, marfil, gris
-  oscuro, blancos de perro + contorno, narices negro/café, brillantes para efectos, verde
-  acierto, rojo/naranja error). Cada píxel proviene de ella. Única fuente:
+- **Paleta fija de 30 colores + 2 reservados** (tope 32) en rampas (madera, piedra, azules
+  nocturnos, marfil, gris oscuro, blancos de perro + contorno, brillantes para efectos,
+  verde acierto, rojo/naranja error). Los 2 libres se definen con la ambientación final.
+  Las narices no tienen colores propios: negra = `ink`, café = `wood-2`.
+  Cada píxel proviene de la paleta. Única fuente:
   `js/engine/palette.js`; exportada a `assets/palette/crispianist.gpl` y `crispianist.png`
   con `python tools/export-palette.py`.
 - Todo texto del canvas usa la fuente bitmap de `js/engine/font.js` (tildes, ñ, ¿¡, ♭, ♯).
+  Regla de legibilidad: C/c con los brazos rectos (abiertos) para no confundirse con O/o.
 
 ### Capas (en este orden; cada una reemplazable sin tocar las demás)
 1. Fondo: placeholder plano por ahora. Al final: interior de un conservatorio de noche,
@@ -99,7 +109,10 @@ efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
 - El sonido se dispara en el evento del clic, nunca desde el bucle.
 
 ### Fuera del canvas
-- Menús, configuración y explicaciones largas: HTML con la misma paleta y fuente pixel.
+- Menús, configuración y explicaciones largas: HTML con la misma paleta y la fuente pixel
+  **Tiny5** (@fontsource/tiny5@5.3.0). Tiene un solo grosor: jerarquía con tamaño y color,
+  `font-synthesis: none` (nada de negrita sintética). Se cambió desde Pixelify Sans porque
+  confundía C con O y 5 con 8.
 - Pentagrama y partituras (VexFlow / OSMD) irán en un panel nítido aparte, sin pixelar,
   con colores de la paleta. No dibujarlas en el canvas.
 
@@ -151,7 +164,9 @@ Dos perros blancos idénticos, diferenciados solo por la nariz (uno negra, otro 
   Cantidad de frames y fps son la recomendación; el JSON manda si se cambian.
 - Recomendación: una carpeta por personaje (así cada uno puede tener posturas propias de
   su personalidad). Si un estado es idéntico salvo la nariz, se puede reutilizar la tira
-  del otro perro con `"noseSwap": true`, y el motor cambia el color de la nariz.
+  del otro perro con `"noseSwap": true`, y el motor cambia `wood-2` → `ink`. Para que el
+  cambio no toque nada más, en el perro de nariz café `wood-2` debe usarse **solo** en la
+  nariz (los ojos y contornos van en `ink`/`dog-outline`).
 
 ## Estadísticas
 - Historial de ejercicios en `localStorage`: acorde, acierto/error, notas que faltaron o
@@ -182,7 +197,8 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
 - Responder en español.
 - Explicar las decisiones y no saltarse pasos: estoy aprendiendo mientras construyo.
 - Avanzar por etapas y esperar mi revisión entre cada una.
-- Etapas actuales del sistema visual:
-  1. Canvas, escalado, paleta (con exportación), fuente bitmap, capas y teclado.
-  2. Efectos y partículas.
-  3. Mascotas, bus de eventos, diálogos y estadísticas, con placeholders.
+- Sistema visual: etapa 1 (canvas, escalado, paleta, fuente bitmap, capas y teclado) ✅
+  aprobada. Siguiente: **módulo 2 (MIDI)**, y luego los módulos 3–6.
+- Al terminar los 6 módulos: efectos y partículas; mascotas (sprites, máquina de estados,
+  diálogos); fondo del conservatorio y los 2 colores reservados. El historial de
+  estadísticas puede adelantarse si un módulo lo necesita.

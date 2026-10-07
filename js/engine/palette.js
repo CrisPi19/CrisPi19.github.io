@@ -1,5 +1,7 @@
 /*
- * Paleta de CrisPianist: 32 colores organizados en rampas (de oscuro a claro).
+ * Paleta de CrisPianist: 30 colores organizados en rampas (de oscuro a claro), más
+ * 2 espacios libres reservados para la ambientación final (fondo del conservatorio),
+ * que se definirá al terminar los 6 módulos. Tope: 32 colores.
  * Es la ÚNICA fuente de colores. Cada píxel del canvas sale de aquí.
  *
  * Al cambiar un color, regenerar los archivos derivados:
@@ -33,14 +35,11 @@ export const COLORS = [
   { name: 'ink', hex: '#0a090e' },
   { name: 'key-black', hex: '#25222c' },
   { name: 'key-black-hi', hex: '#4b4657' },
-  // Perros: contorno y tres blancos
+  // Perros: contorno y tres blancos. Narices: negra = ink, café = wood-2 (sin colores propios).
   { name: 'dog-outline', hex: '#2b2535' },
   { name: 'dog-0', hex: '#a6a3b6' },
   { name: 'dog-1', hex: '#d5d3e0' },
   { name: 'dog-2', hex: '#f5f4f9' },
-  // Narices
-  { name: 'nose-black', hex: '#15121a' },
-  { name: 'nose-brown', hex: '#6f3f29' },
   // Brillantes (efectos)
   { name: 'fx-gold', hex: '#ffd23f' },
   { name: 'fx-pink', hex: '#ff6fae' },

@@ -63,6 +63,9 @@ export class UiLayer {
   }
 
   draw(ctx) {
+    // En pausa el acorde se oculta: así la pausa no sirve para pensar con el cronómetro detenido.
+    if (this.trainer.paused) return;
+
     if (this.rootSprite) {
       // La cualidad (maj7, m6/9…) va como superíndice, alineada arriba con la tónica.
       const gap = 1;

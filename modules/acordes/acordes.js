@@ -19,6 +19,7 @@ import { Renderer } from '../../js/engine/renderer.js';
 import { Scene } from '../../js/engine/scene.js';
 import { startLoop } from '../../js/engine/loop.js';
 import { screenToLogical } from '../../js/engine/input.js';
+import { PauseOverlay } from '../../js/engine/pause.js';
 import { BackgroundLayer } from '../../js/layers/background.js';
 import { CharactersLayer } from '../../js/layers/characters.js';
 import { PianoLayer, hitTest, KB_FROM } from '../../js/layers/piano.js';
@@ -62,6 +63,7 @@ scene.set('characters', new CharactersLayer());
 scene.set('piano', piano);
 scene.set('effects', new EffectsLayer());
 scene.set('ui', new UiLayer(bus, trainer));
+const pauseOverlay = new PauseOverlay();
 
 /* ---------------- Sonido (dentro del mismo evento del clic: el bus es síncrono) ---------------- */
 
@@ -194,6 +196,7 @@ function renderNamesToggle() {
   els.namesBtn.innerHTML = `Nombres: ${showNames ? 'sí' : 'no'} <kbd>N</kbd>`;
 }
 function toggleNames() {
+  if (trainer.paused) return;
   showNames = !showNames;
   save('showNames', showNames);
   renderNamesToggle();
@@ -283,12 +286,13 @@ els.resetBtn.addEventListener('click', () => {
 /* ---------------- Botones y atajos ---------------- */
 
 function mainAction() {
+  if (trainer.paused) return;
   if (trainer.phase === 'asking') trainer.submit();
   else trainer.next();
 }
 
 function listenAction() {
-  if (trainer.current) playChord(referenceVoicing(trainer.current));
+  if (!trainer.paused && trainer.current) playChord(referenceVoicing(trainer.current));
 }
 
 function onButton(button, action) {
@@ -310,12 +314,21 @@ document.addEventListener('keydown', (event) => {
   const target = event.target;
   if (target !== document.body && target !== els.canvas) return;
 
-  if (event.key === 'Enter') mainAction();
+  if (event.key === 'p' || event.key === 'P' || event.key === 'Pause') trainer.togglePause();
+  else if (trainer.paused) return; // en pausa solo responde el atajo de pausa
+  else if (event.key === 'Enter') mainAction();
   else if (event.key === 'Escape') trainer.clear();
   else if (event.key === ' ') listenAction();
   else if (event.key === 'n' || event.key === 'N') toggleNames();
   else return;
   event.preventDefault();
+});
+
+/* ---------------- Pausa (atajo P, sin botón en pantalla) ---------------- */
+
+const controlButtons = [els.clearBtn, els.listenBtn, els.namesBtn, els.mainBtn];
+bus.on('pause:change', ({ paused }) => {
+  for (const button of controlButtons) button.disabled = paused;
 });
 
 /* ---------------- Inicio ---------------- */
@@ -326,7 +339,10 @@ renderConfig();
 renderSession();
 renderProgress();
 trainer.next();
-startLoop((dt) => scene.update(dt), () => {
+startLoop((dt) => {
+  if (!trainer.paused) scene.update(dt); // en pausa no avanza nada: el tiempo de la escena se congela
+}, () => {
   scene.draw(renderer.bctx);
+  if (trainer.paused) pauseOverlay.draw(renderer.bctx);
   renderer.present();
 });

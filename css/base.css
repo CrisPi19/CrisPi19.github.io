@@ -17,7 +17,9 @@
   --text-muted: var(--ivory-0);
   --accent: var(--night-3);
 
-  --font-pixel: 'Pixelify Sans', ui-monospace, Consolas, monospace;
+  /* Tiny5: fuente pixel con la C abierta y dígitos claros (Pixelify Sans confundía C/O y 5/8).
+     Solo tiene un grosor: la jerarquía se marca con tamaño y color, nunca con negrita falsa. */
+  --font-pixel: 'Tiny5', ui-monospace, Consolas, monospace;
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -38,7 +40,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-pixel);
-  font-size: 16px;
+  font-synthesis: none; /* sin negrita ni cursiva sintéticas: deforman los píxeles */
+  font-size: 18px;
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -58,7 +61,7 @@ a {
 }
 
 .muted { color: var(--text-muted); }
-.small { font-size: 14px; }
+.small { font-size: 15px; }
 
 .container {
   width: 100%;
@@ -163,6 +166,17 @@ a {
   outline-offset: 2px;
 }
 
+/* Desactivado (por ejemplo, en pausa): piedra plana, sin relieve ni hover. */
+.btn:disabled,
+.btn:disabled:hover {
+  background: var(--stone-1);
+  color: var(--stone-2);
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+  cursor: default;
+}
+
 .btn-primary {
   background: var(--night-2);
   box-shadow: inset 2px 2px 0 var(--night-3), inset -2px -2px 0 var(--night-1);
@@ -251,14 +265,37 @@ a.module-card:hover {
   font-size: 14px;
 }
 
-.module-card .num {
-  color: var(--fx-gold);
-  font-weight: 700;
+.module-card .head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
 }
 
-.module-card.is-disabled {
-  opacity: 0.55;
+/* Número del módulo: ficha grande y contrastada (a 16 px la fuente pixel se veía borrosa). */
+.module-card .num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  border: 2px solid var(--ink);
+  background: var(--fx-gold);
+  color: var(--ink);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: inset -2px -2px 0 var(--wood-3);
 }
+
+/* Módulos aún no disponibles: colores apagados en vez de transparencia, para que el número
+   siga siendo legible (la opacidad lo atenuaba todo). */
+.module-card.is-disabled .num {
+  background: var(--stone-2);
+  color: var(--ivory-1);
+  box-shadow: inset -2px -2px 0 var(--stone-1);
+}
+
+.module-card.is-disabled h3 { color: var(--ivory-0); }
 
 .badge {
   align-self: flex-start;
