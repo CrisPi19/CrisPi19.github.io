@@ -19,8 +19,9 @@ el título de las páginas y en la interfaz).
   Módulos ES nativos; para desarrollar se usa un servidor local (`python -m http.server 8000`).
 - Librerías cargadas por CDN (jsDelivr o cdnjs) con versión fijada:
   - Tone.js: sonido
-  - VexFlow 4.2.5 (`build/cjs/vexflow.js`, global `Vex`): dibujar pentagrama, vía `js/staff.js`
-  - OpenSheetMusicDisplay: renderizar archivos MusicXML
+  - OpenSheetMusicDisplay: renderizar archivos MusicXML (módulo 6)
+  - El pentagrama de los módulos 3–5 es pixel art propio (sin librería; ver más abajo).
+    VexFlow se probó y se descartó porque no encaja con el estilo.
 - Entrada por teclado MIDI real con la **Web MIDI API** (Chrome/Edge en computador).
   Siempre debe existir un teclado en pantalla como alternativa (clic/toque).
 - Progreso y estadísticas del usuario en `localStorage` (envolver en try/catch).
@@ -123,8 +124,23 @@ efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
   **Tiny5** (@fontsource/tiny5@5.3.0). Tiene un solo grosor: jerarquía con tamaño y color,
   `font-synthesis: none` (nada de negrita sintética). Se cambió desde Pixelify Sans porque
   confundía C con O y 5 con 8.
-- Pentagrama y partituras (VexFlow / OSMD) irán en un panel nítido aparte, sin pixelar,
-  con colores de la paleta. No dibujarlas en el canvas.
+- Partituras MusicXML (OSMD, módulo 6): panel nítido aparte con colores de la paleta.
+
+### Pentagrama pixel art (módulos 3–5)
+- Dibujado con el mismo sistema que la escena: líneas cada 4 px lógicos, solo redondas
+  (6×3, con el hueco del color del papel), glifos bitmap de claves y alteraciones en
+  `js/engine/music-glyphs.js`, grados de escala en **números romanos** (I, ♭III, ♯IV…;
+  la octava vuelve a ser I) con la fuente bitmap. Colores: líneas `ivory-0`,
+  clave `ivory-1`, notas `ivory-2` (lo de mayor contraste), papel `stone-0`.
+- `js/notation.js` diagrama (posiciones, líneas adicionales, segundas desplazadas a la
+  derecha, alteraciones en columnas, becuadros) sin DOM y con pruebas;
+  `js/layers/staff.js` (`StaffLayer`) lo pinta en cualquier canvas lógico.
+- **Hoy** va en un panel bajo la escena (`js/staff.js`), ampliado a escala **fija ×2**
+  (píxeles físicos; sin selector).
+- **Objetivo final (opción B):** llevarlo DENTRO de la escena (atril o pizarra del
+  conservatorio) cuando se haga el fondo. Por eso `StaffLayer` es una capa normal con
+  posición `x`, `y`: bastará con agregarla a la escena. Mientras tanto, todo lo nuevo
+  debe poder moverse ahí (nada de depender de HTML para leer el pentagrama).
 
 ## Mascotas (arquitectura preparada; sprites los dibuja el usuario)
 Dos perros blancos idénticos, diferenciados solo por la nariz (uno negra, otro café).
@@ -190,7 +206,8 @@ index.html               ← menú de módulos
 css/                     ← estilo compartido (paleta + fuente pixel)
 js/theory.js             ← teoría pura (notas, grados, acordes, escalas, intervalos,
                            notas escritas con octava, validación)
-js/staff.js              ← pentagrama (VexFlow) en panel HTML, colores de la paleta
+js/notation.js           ← diagramación del pentagrama pixel art (sin DOM)
+js/staff.js              ← panel del pentagrama bajo la escena (usa layers/staff.js)
 js/srs.js  storage.js    ← repetición espaciada, localStorage
 js/history.js            ← historial de respuestas (en memoria por ahora)
 js/audio.js              ← Tone.js
@@ -198,8 +215,9 @@ js/session.js            ← base de ejercicios (fases, cronómetro, pausa, Leit
 js/trainer.js            ← ejercicio de acordes (extiende Session; sin DOM); emite eventos
 js/shell.js              ← armazón común de módulos: canvas, clics, flechas, atajos, sonido
 js/events.js             ← bus de eventos
-js/engine/               ← paleta, renderer, loop, fuente, input, partículas, sprites
-js/layers/               ← background, characters, piano, effects, ui
+js/engine/               ← paleta, renderer, loop, fuente, glifos musicales, input,
+                           partículas, sprites
+js/layers/               ← background, characters, piano, staff, effects, ui
 js/midi.js               ← entrada MIDI (módulo 2)
 data/                    ← diálogos
 assets/palette/  assets/sprites/
@@ -219,7 +237,8 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
 - **Módulo 2 (MIDI) pospuesto** hasta tener cable MIDI. Se sigue con los módulos 3–6 según
   este plan (una revisión entre etapas):
   0. Piezas comunes: `shell.js`, `session.js`, API del teclado + 3 ventanas, `history.js`.
-  1. Teoría (escalas, intervalos, `spellVoicing`) + `js/staff.js` (VexFlow).
+  1. Teoría (escalas, intervalos, `spellVoicing`) + pentagrama pixel art (`notation.js`,
+     `layers/staff.js`, `staff.js`).
   2. Módulo 3 Explorador (incluye "Comparar con…", p. ej. lidio vs mayor).
   3–4. Módulo 4 Lectura (sol, luego fa y acordes escritos): responde con la primera
      tecla, octava exacta.
@@ -229,5 +248,6 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
 - Escalas: mayor, menor natural/armónica/melódica, los 7 modos, pentatónicas mayor y
   menor, y blues. Ninguna más por ahora.
 - Al terminar los 6 módulos: efectos y partículas; mascotas (sprites, máquina de estados,
-  diálogos); fondo del conservatorio y los 2 colores reservados. El historial de
+  diálogos); fondo del conservatorio y los 2 colores reservados; pentagrama dentro de la
+  escena (opción B). El historial de
   estadísticas puede adelantarse si un módulo lo necesita.

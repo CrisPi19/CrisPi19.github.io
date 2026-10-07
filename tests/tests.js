@@ -7,8 +7,12 @@ import {
   rootPositionVoicing, notePc, displayNote, parseDegree, CHORD_TYPES, ROOTS,
   SCALE_TYPES, INTERVALS, spellScale, scalePitchClasses, pitchMidi, pitchFromMidi, pitchAbove,
   pitchBelow, intervalBetween, intervalSemitones, spellVoicing, spellScaleVoicing, fitToRange,
+  romanDegree,
 } from '../js/theory.js';
-import { vexKey, vexAccidental, clefFor } from '../js/staff.js';
+import {
+  clefFor, noteY, ledgerYs, layoutStaff, STAFF_TOP, STAFF_BOTTOM,
+} from '../js/notation.js';
+import { GLYPHS } from '../js/engine/music-glyphs.js';
 import { grade, pickNext, createItem, MAX_BOX } from '../js/srs.js';
 import { COLORS, C } from '../js/engine/palette.js';
 import { missingChars, measure } from '../js/engine/font.js';
@@ -231,15 +235,94 @@ test('fitToRange: la 9.ª de B9 baja una octava para caber en C3–C5 y sigue si
   eq(Math.max(...v.map((n) => n.midi)) <= 72, true);
 });
 
-/* ---------- Pentagrama: traducción a VexFlow ---------- */
+/* ---------- Pentagrama pixel art: diagramación ---------- */
 
-test('vexKey y vexAccidental separan letra/octava de la alteración', () => {
-  const p = { name: 'Bbb', octave: 3 };
-  eq([vexKey(p), vexAccidental(p), vexAccidental({ name: 'C', octave: 4 })], ['b/3', 'bb', null]);
+const n = (name, octave) => ({ name, octave, midi: pitchMidi({ name, octave }) });
+
+test('noteY: E4 en la 5.ª línea de sol, F5 en la 1.ª; G2 y A3 en las de fa', () => {
+  eq([noteY(n('E', 4), 'treble'), noteY(n('F', 5), 'treble')], [STAFF_BOTTOM, STAFF_TOP]);
+  eq([noteY(n('G', 2), 'bass'), noteY(n('A', 3), 'bass')], [STAFF_BOTTOM, STAFF_TOP]);
+});
+
+test('noteY: la altura depende de la letra escrita (C♭4 en el lugar de C4, no de B3)', () => {
+  eq(noteY(n('Cb', 4), 'treble'), noteY(n('C', 4), 'treble'));
+  eq(noteY(n('B#', 3), 'treble') !== noteY(n('C', 4), 'treble'), true);
+});
+
+test('ledgerYs: C4 en sol lleva 1 línea adicional; A5 1; C6 2; G4 ninguna', () => {
+  eq(ledgerYs(noteY(n('C', 4), 'treble')).length, 1);
+  eq(ledgerYs(noteY(n('B', 3), 'treble')).length, 1); // B3 cuelga bajo la línea de C4
+  eq(ledgerYs(noteY(n('A', 5), 'treble')).length, 1);
+  eq(ledgerYs(noteY(n('C', 6), 'treble')).length, 2);
+  eq(ledgerYs(noteY(n('G', 4), 'treble')).length, 0);
+});
+
+test('acorde: en una segunda la nota de arriba va a la derecha (B3 C♯4 en B9)', () => {
+  const L = layoutStaff({ notes: fitToRange(spellVoicing('B', 'dom9', 48), 48, 72), clef: 'treble' });
+  const disp = L.heads.filter((h) => h.displaced);
+  eq(disp.length, 1);
+  eq(disp[0].y, noteY(n('C#', 4), 'treble'));
+  eq(disp[0].x - L.heads[0].x, GLYPHS.head.w);
+});
+
+test('acorde: racimo C D E → C izq., D der., E izq.', () => {
+  const L = layoutStaff({ notes: [n('C', 4), n('D', 4), n('E', 4)], clef: 'treble' });
+  eq(L.heads.map((h) => h.displaced), [false, true, false]);
+});
+
+test('acorde: alteraciones que chocan van en columnas distintas; las lejanas comparten', () => {
+  // E♭ G♭ B♭♭ (a tercera): los bemoles se tocan → más de una columna.
+  const close = layoutStaff({ notes: spellVoicing('Eb', 'dim', 60), clef: 'treble' });
+  eq(new Set(close.accidentals.map((a) => a.x)).size > 1, true);
+  // C♯4 y C♯5 (a octava): caben en la misma columna.
+  const far = layoutStaff({ notes: [n('C#', 4), n('C#', 5)], clef: 'treble' });
+  eq(new Set(far.accidentals.map((a) => a.x)).size, 1);
+  // Ninguna alteración se mete en la columna de las cabezas.
+  for (const a of close.accidentals) eq(a.x + a.glyph.w <= close.heads[0].x - 2, true);
+});
+
+test('acorde: el índice de cada cabeza apunta a la nota recibida (para su color)', () => {
+  const notes = [n('G', 4), n('C', 4), n('E', 4)];
+  const L = layoutStaff({ notes, clef: 'treble' });
+  eq(L.heads.map((h) => h.index), [1, 2, 0]); // ordenadas de grave a agudo
+});
+
+test('secuencia: becuadro cuando vuelve la letra natural (A blues: E♭3 … E3)', () => {
+  const L = layoutStaff({ notes: spellScaleVoicing('A', 'blues', 45), mode: 'sequence', clef: 'bass' });
+  eq(L.accidentals.some((a) => a.glyph === GLYPHS.natural), true);
+});
+
+test('romanDegree: grados de escala en romanos; la octava vuelve a ser I', () => {
+  eq(['1', 'b3', '#4', 'b7', '8', 'bb7'].map(romanDegree), ['I', '♭III', '♯IV', '♭VII', 'I', '♭♭VII']);
+});
+
+test('secuencia: un grado en romanos por nota, en la fila de etiquetas', () => {
+  const notes = spellScaleVoicing('D', 'lydian', 60);
+  const L = layoutStaff({ notes, mode: 'sequence', labels: true });
+  eq(L.labels.length, notes.length);
+  eq(L.labels.map((l) => l.text), ['I', 'II', 'III', '♯IV', 'V', 'VI', 'VII', 'I']);
+  eq(new Set(L.labels.map((l) => l.y)).size, 1);
 });
 
 test('clefFor: fa si el promedio está bajo el Do central', () => {
   eq([clefFor(spellVoicing('C', 'maj', 36)), clefFor(spellVoicing('C', 'maj', 60))], ['bass', 'treble']);
+});
+
+test('secuencia: ningún grado se monta sobre el de la nota vecina', () => {
+  for (const id of Object.keys(SCALE_TYPES)) {
+    const L = layoutStaff({ notes: spellScaleVoicing('C', id, 60), mode: 'sequence', labels: true });
+    for (let i = 1; i < L.labels.length; i++) {
+      const a = L.labels[i - 1];
+      const b = L.labels[i];
+      eq([id, a.cx + (measure(a.text) >> 1) < b.cx - (measure(b.text) >> 1)], [id, true]);
+    }
+  }
+});
+
+test('glifos: el ancla cae dentro de cada glifo', () => {
+  for (const [name, g] of Object.entries(GLYPHS)) {
+    eq([name, g.ay >= 0 && g.ay < g.h, g.runs.length > 0], [name, true, true]);
+  }
 });
 
 /* ---------- Repetición espaciada ---------- */

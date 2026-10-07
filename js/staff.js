@@ -1,132 +1,66 @@
 /*
- * Pentagrama con VexFlow 4.2.5 (cargado como script clásico desde el CDN: global `Vex`).
+ * Pentagrama pixel art en un panel HTML aparte, debajo de la escena.
  *
- * Va en un panel HTML aparte, NO en el canvas pixel art: es un SVG nítido que se escala
- * con la página (viewBox + width 100 %). Los colores salen de la misma paleta del juego.
- *
- * Recibe notas ESCRITAS de js/theory.js ({ name: 'Bb', octave: 3 }), porque la partitura
- * necesita la letra y la octava escrita, no solo el sonido.
+ * Dibuja con la misma capa que podría ir dentro de la escena (js/layers/staff.js) en un
+ * canvas lógico pequeño y lo amplía por un factor ENTERO fijo: ×2 en píxeles físicos
+ * (decisión de diseño; solo baja si el panel es demasiado angosto).
  *
  *   const staff = new Staff(contenedor);
- *   staff.render({ notes, mode: 'chord' })        // acorde en bloque (redonda)
- *   staff.render({ notes, mode: 'sequence' })     // una nota tras otra (escala, melodía)
+ *   staff.render({ notes, mode: 'chord' })        // acorde en bloque (redondas)
+ *   staff.render({ notes, mode: 'sequence' })     // una nota tras otra (escala)
  *
- * Si VexFlow no cargó (sin internet), render() no dibuja nada y devuelve false.
+ * Recibe notas ESCRITAS de js/theory.js ({ name: 'Bb', octave: 3 }).
  */
-import { PAL, C } from './engine/palette.js';
-import { displayDegree } from './theory.js';
+import { StaffLayer } from './layers/staff.js';
 
-/** Clave de una nota para VexFlow: solo letra y octava ('b/3'); la alteración va aparte. */
-export function vexKey({ name, octave }) {
-  return `${name[0].toLowerCase()}/${octave}`;
-}
+export { clefFor } from './notation.js';
 
-/** Alteración escrita para VexFlow ('#', '##', 'b', 'bb') o null si es natural. */
-export function vexAccidental({ name }) {
-  return name.slice(1) || null;
-}
-
-/** Clave sugerida: fa si el promedio de las notas está bajo el Do central. */
-export function clefFor(pitches) {
-  if (!pitches.length) return 'treble';
-  const avg = pitches.reduce((sum, p) => sum + (p.midi ?? 0), 0) / pitches.length;
-  return avg < 60 ? 'bass' : 'treble';
-}
-
-const STAVE_X = 10;
-const STAVE_Y = 40; // deja espacio arriba para líneas adicionales
-const HEIGHT = 190; // y abajo para líneas adicionales y etiquetas de grado
-const CHORD_WIDTH = 170;
-const NOTE_WIDTH = 42; // por nota, en modo secuencia
-const CLEF_WIDTH = 70;
+const SCALE = 2;
 
 export class Staff {
-  constructor(container) {
+  constructor(container, colors = {}) {
     this.container = container;
+    this.layer = new StaffLayer(colors);
+    this.buffer = document.createElement('canvas');
+    this.bctx = this.buffer.getContext('2d');
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = 'staff-canvas';
+    this.canvas.style.imageRendering = 'pixelated';
+    this.canvas.style.display = 'block';
+    this.canvas.style.margin = '0 auto';
+    this.ctx = this.canvas.getContext('2d');
+    container.appendChild(this.canvas);
+    // Al cambiar el ancho del panel se recalcula el factor (ResizeObserver no está en todos
+    // los navegadores viejos; sin él, basta con el tamaño inicial).
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => this.present()).observe(container);
   }
 
-  /**
-   * @param notes   notas escritas [{ name, octave, degree? }]
-   * @param mode    'chord' (bloque) o 'sequence' (una tras otra)
-   * @param clef    'treble' | 'bass' (por defecto, según la altura media)
-   * @param labels  true: escribe el grado bajo cada nota (solo en 'sequence')
-   * @param colors  índice de nota → índice de la paleta, para resaltar (p. ej. la tónica)
-   * @returns true si dibujó
-   */
-  render({ notes, mode = 'chord', clef = clefFor(notes), labels = false, colors = {} }) {
-    this.container.textContent = '';
-    if (typeof Vex === 'undefined' || !notes.length) return false;
-    const VF = Vex.Flow;
-
-    const base = PAL[C.IVORY_1];
-    const style = (i) => {
-      const color = colors[i] != null ? PAL[colors[i]] : base;
-      return { fillStyle: color, strokeStyle: color };
-    };
-
-    const width = mode === 'chord' ? CHORD_WIDTH : CLEF_WIDTH + NOTE_WIDTH * notes.length;
-    const renderer = new VF.Renderer(this.container, VF.Renderer.Backends.SVG);
-    renderer.resize(width, HEIGHT);
-    const ctx = renderer.getContext();
-    ctx.setFillStyle(base);
-    ctx.setStrokeStyle(base);
-
-    const stave = new VF.Stave(STAVE_X, STAVE_Y, width - STAVE_X * 2);
-    stave.addClef(clef);
-    stave.setStyle({ fillStyle: base, strokeStyle: base });
-    stave.setContext(ctx).draw();
-
-    let staveNotes;
-    if (mode === 'chord') {
-      // VexFlow ordena las claves de grave a agudo: se ordenan antes para que los
-      // índices de alteraciones y colores coincidan.
-      const sorted = notes.map((p, i) => ({ p, i })).sort((a, b) => (a.p.midi ?? 0) - (b.p.midi ?? 0));
-      const note = new VF.StaveNote({ keys: sorted.map(({ p }) => vexKey(p)), duration: 'w', clef });
-      note.setStyle(style(-1));
-      note.setLedgerLineStyle({ fillStyle: base, strokeStyle: base });
-      sorted.forEach(({ p, i }, k) => {
-        const acc = vexAccidental(p);
-        if (acc) note.addModifier(new VF.Accidental(acc).setStyle(style(i)), k);
-        note.setKeyStyle(k, style(i));
-      });
-      staveNotes = [note];
-    } else {
-      // Una alteración vale para toda la línea/espacio hasta el final del compás: si después
-      // vuelve la misma letra natural (E♭3 … E3) hace falta un becuadro.
-      const altered = new Map(); // 'e/3' → alteración vigente
-      staveNotes = notes.map((p, i) => {
-        const key = vexKey(p);
-        const note = new VF.StaveNote({ keys: [key], duration: 'q', clef });
-        note.setStyle(style(i));
-        note.setLedgerLineStyle({ fillStyle: base, strokeStyle: base });
-        let acc = vexAccidental(p);
-        if (acc) altered.set(key, acc);
-        else if (altered.has(key)) {
-          acc = 'n';
-          altered.delete(key);
-        }
-        if (acc) note.addModifier(new VF.Accidental(acc).setStyle(style(i)), 0);
-        if (labels && p.degree) {
-          const text = new VF.Annotation(displayDegree(p.degree))
-            .setFont('Tiny5', 13)
-            .setVerticalJustification(VF.Annotation.VerticalJustify.BOTTOM);
-          text.setStyle(style(i));
-          note.addModifier(text, 0);
-        }
-        return note;
-      });
-    }
-
-    VF.Formatter.FormatAndDraw(ctx, stave, staveNotes);
-
-    // Escalable: el SVG ocupa el ancho del panel y conserva la proporción.
-    const svg = this.container.querySelector('svg');
-    svg.setAttribute('viewBox', `0 0 ${width} ${HEIGHT}`);
-    svg.removeAttribute('width');
-    svg.removeAttribute('height');
-    svg.style.width = '100%';
-    svg.style.maxWidth = `${width * 1.6}px`;
-    svg.style.height = 'auto';
+  /** Mismas opciones que layoutStaff(): { notes, mode, clef, labels, colors }. */
+  render(options) {
+    const { layer } = this;
+    layer.set(options);
+    this.buffer.width = layer.width;
+    this.buffer.height = layer.height;
+    layer.draw(this.bctx);
+    this.present();
     return true;
+  }
+
+  present() {
+    const { width, height } = this.layer;
+    if (!width) return;
+    const dpr = window.devicePixelRatio || 1;
+    const style = getComputedStyle(this.container);
+    const avail = this.container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const scale = Math.max(1, Math.min(SCALE, Math.floor((avail * dpr) / width)));
+    if (this.canvas.width !== width * scale || this.canvas.height !== height * scale) {
+      this.canvas.width = width * scale;
+      this.canvas.height = height * scale;
+      this.canvas.style.width = `${(width * scale) / dpr}px`;
+      this.canvas.style.height = `${(height * scale) / dpr}px`;
+    }
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.drawImage(this.buffer, 0, 0, width * scale, height * scale);
   }
 }

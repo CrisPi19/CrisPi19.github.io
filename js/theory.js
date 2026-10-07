@@ -108,6 +108,18 @@ export function displayDegree(degree) {
   return degree.replace('b', '♭').replace('#', '♯');
 }
 
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+
+/**
+ * Grado de escala en números romanos, para el pentagrama: 'b3' → '♭III', '#4' → '♯IV'.
+ * La octava vuelve a ser la tónica: '8' → 'I' (igual que 9 → II).
+ */
+export function romanDegree(degree) {
+  const m = /^([b#]*)(\d+)$/.exec(degree);
+  if (!m) throw new Error(`Grado no válido: ${degree}`);
+  return m[1].replace(/b/g, '♭').replace(/#/g, '♯') + ROMAN[(Number(m[2]) - 1) % 7];
+}
+
 /**
  * Deletrea la nota que está a cierto grado de una tónica.
  * spellDegree('Bb', 'b3') → 'Db'
@@ -296,7 +308,7 @@ export function intervalSemitones(intervalId) {
  */
 
 /** Pasos de letra desde C0 (C0 = 0, D0 = 1 … C1 = 7): sirve para medir distancias escritas. */
-function letterSteps({ name, octave }) {
+export function letterSteps({ name, octave }) {
   return octave * 7 + LETTERS.indexOf(name[0]);
 }
 

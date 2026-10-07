@@ -7,54 +7,88 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/tiny5@5.3.0/index.css">
   <link rel="stylesheet" href="../css/palette.css">
   <link rel="stylesheet" href="../css/base.css">
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.5/build/cjs/vexflow.js"></script>
   <style>
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-3); }
+    .group { margin-bottom: var(--sp-5); }
+    .group > h2 { font-size: 20px; margin-bottom: var(--sp-2); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-3); }
+    .grid.wide { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
     .case { padding: var(--sp-3); }
-    .case h2 { font-size: 18px; margin-bottom: var(--sp-1); }
-    .case p { font-size: 14px; margin-bottom: var(--sp-2); }
-    .case.wide { grid-column: 1 / -1; }
+    .case h3 { font-size: 16px; margin-bottom: var(--sp-1); }
+    .case p { font-size: 12px; margin-bottom: var(--sp-2); }
   </style>
 </head>
 <body>
   <main class="container">
     <h1>Prueba visual del pentagrama</h1>
     <p class="muted">Cada caso dice qué se debe ver. Revisar letras, alteraciones, octavas y colores.</p>
-    <div class="grid" id="cases"></div>
+    <div id="sections"></div>
   </main>
   <script type="module">
     import { Staff } from '../js/staff.js';
     import {
-      spellVoicing, spellScaleVoicing, fitToRange, pitchAbove, displayNote,
+      CHORD_TYPES, SCALE_TYPES, SCALE_GROUPS, chordName, spellVoicing, spellScaleVoicing,
+      fitToRange, pitchAbove, pitchMidi, displayNote,
     } from '../js/theory.js';
     import { C } from '../js/engine/palette.js';
 
     const show = (p) => p.map((n) => displayNote(n.name) + n.octave).join(' ');
-    const tonic = (notes) => Object.fromEntries(notes.map((n, i) => [i, n.degree === '1' || n.degree === '8' ? C.FX_GOLD : null]).filter(([, c]) => c != null));
+    // La tónica (y su octava) en dorado.
+    const tonic = (notes) => Object.fromEntries(notes.flatMap((n, i) => (n.degree === '1' || n.degree === '8' ? [[i, C.FX_GOLD]] : [])));
+    const withMidi = (p) => ({ ...p, midi: pitchMidi(p) });
 
-    const cases = [
-      { title: 'Fmaj7', notes: spellVoicing('F', 'maj7', 48), mode: 'chord', clef: 'treble' },
-      { title: 'B♭m7 (bemoles)', notes: spellVoicing('Bb', 'm7', 48), mode: 'chord' },
-      { title: 'E♭dim (doble bemol: B𝄫)', notes: spellVoicing('Eb', 'dim', 60), mode: 'chord' },
+    // 1) Todos los acordes del entrenador sobre C, en el mismo orden que el entrenador.
+    const chords = Object.keys(CHORD_TYPES).map((type) => ({
+      title: chordName('C', type), notes: spellVoicing('C', type, 60), mode: 'chord', clef: 'treble',
+    }));
+
+    // 2) Todas las escalas sobre C, agrupadas como en la teoría, con grados en romanos.
+    const scaleGroups = Object.entries(SCALE_GROUPS).map(([group, groupName]) => ({
+      title: `Escalas sobre C · ${groupName}`,
+      wide: true,
+      cases: Object.entries(SCALE_TYPES).filter(([, s]) => s.group === group).map(([id, s]) => ({
+        title: s.name, notes: spellScaleVoicing('C', id, 60), mode: 'sequence', clef: 'treble', labels: true, tonicColor: true,
+      })),
+    }));
+
+    // 3) Casos difíciles de escritura: primero acordes, después escalas.
+    const special = [
+      { title: 'B♭m7: bemoles en columnas', notes: spellVoicing('Bb', 'm7', 48), mode: 'chord', clef: 'treble' },
+      { title: 'E♭dim: doble bemol (B𝄫)', notes: spellVoicing('Eb', 'dim', 60), mode: 'chord' },
+      { title: 'B9 en C3–C5: segunda B3–C♯4 desplazada', notes: fitToRange(spellVoicing('B', 'dom9', 48), 48, 72), mode: 'chord', clef: 'treble' },
+      { title: '3M sobre G♯4: B♯4, no C5', notes: [withMidi({ name: 'G#', octave: 4 }), withMidi(pitchAbove({ name: 'G#', octave: 4 }, '3'))], mode: 'chord' },
       { title: 'C7 en clave de fa', notes: spellVoicing('C', 'dom7', 36), mode: 'chord' },
-      { title: 'B9 ajustado a C3–C5 (la 9.ª baja)', notes: fitToRange(spellVoicing('B', 'dom9', 48), 48, 72), mode: 'chord', clef: 'treble' },
-      { title: 'Intervalo 3M sobre G♯4 (B♯, no C)', notes: [{ name: 'G#', octave: 4, midi: 68 }, { ...pitchAbove({ name: 'G#', octave: 4 }, '3'), midi: 72 }], mode: 'chord' },
-      { title: 'D lidio, tónica en dorado, con grados', notes: spellScaleVoicing('D', 'lydian', 60), mode: 'sequence', labels: true, tonicColor: true, wide: true },
-      { title: 'D♭ locrio (dobles bemoles)', notes: spellScaleVoicing('Db', 'locrian', 60), mode: 'sequence', labels: true, wide: true },
-      { title: 'A blues en clave de fa', notes: spellScaleVoicing('A', 'blues', 45), mode: 'sequence', labels: true, wide: true },
-      { title: 'F♯ menor armónica (E♯)', notes: spellScaleVoicing('F#', 'harmonic', 54), mode: 'sequence', labels: true, wide: true },
+    ];
+    const specialScales = [
+      { title: 'D lidio: ♯IV', notes: spellScaleVoicing('D', 'lydian', 60), mode: 'sequence', labels: true, tonicColor: true },
+      { title: 'F♯ menor armónica: E♯ (VII)', notes: spellScaleVoicing('F#', 'harmonic', 54), mode: 'sequence', labels: true, tonicColor: true },
+      { title: 'D♭ locrio: dobles bemoles', notes: spellScaleVoicing('Db', 'locrian', 60), mode: 'sequence', labels: true, tonicColor: true },
+      { title: 'A blues en clave de fa: becuadro en E3', notes: spellScaleVoicing('A', 'blues', 45), mode: 'sequence', labels: true, tonicColor: true },
     ];
 
-    const root = document.getElementById('cases');
-    for (const c of cases) {
-      const box = document.createElement('section');
-      box.className = `panel case${c.wide ? ' wide' : ''}`;
-      box.innerHTML = `<h2>${c.title}</h2><p class="muted">${show(c.notes)}</p><div class="staff"></div>`;
-      root.appendChild(box);
-      new Staff(box.querySelector('.staff')).render({
-        notes: c.notes, mode: c.mode, clef: c.clef, labels: c.labels,
-        colors: c.tonicColor ? tonic(c.notes) : {},
-      });
+    const sections = [
+      { title: 'Acordes sobre C (orden del entrenador)', cases: chords },
+      ...scaleGroups,
+      { title: 'Casos difíciles · acordes', cases: special },
+      { title: 'Casos difíciles · escalas', wide: true, cases: specialScales },
+    ];
+
+    const root = document.getElementById('sections');
+    for (const sec of sections) {
+      const el = document.createElement('section');
+      el.className = 'group';
+      el.innerHTML = `<h2>${sec.title}</h2><div class="grid${sec.wide ? ' wide' : ''}"></div>`;
+      root.appendChild(el);
+      const grid = el.querySelector('.grid');
+      for (const c of sec.cases) {
+        const box = document.createElement('div');
+        box.className = 'panel case';
+        box.innerHTML = `<h3>${c.title}</h3><p class="muted">${show(c.notes)}</p><div class="staff"></div>`;
+        grid.appendChild(box);
+        new Staff(box.querySelector('.staff')).render({
+          notes: c.notes, mode: c.mode, clef: c.clef, labels: c.labels,
+          colors: c.tonicColor ? tonic(c.notes) : {},
+        });
+      }
     }
   </script>
 </body>
