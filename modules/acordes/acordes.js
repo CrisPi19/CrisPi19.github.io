@@ -4,7 +4,8 @@
  * Este archivo solo CONECTA piezas:
  *   trainer (lógica) ──eventos──► capas del canvas, sonido y paneles HTML
  *   clic en el canvas ──► trainer.noteOn(midi)   (lo mismo que hará el MIDI)
- * No contiene reglas de teoría ni de dibujo.
+ * No contiene reglas de teoría ni de dibujo. El canvas, la pausa y los atajos comunes
+ * vienen de js/shell.js.
  */
 import { EventBus } from '../../js/events.js';
 import { Trainer, TYPE_IDS, itemId } from '../../js/trainer.js';
@@ -14,16 +15,9 @@ import {
 } from '../../js/theory.js';
 import { MAX_BOX } from '../../js/srs.js';
 import { load, save } from '../../js/storage.js';
-import { playNote, playChord, isMuted, setMuted } from '../../js/audio.js';
-import { Renderer } from '../../js/engine/renderer.js';
-import { Scene } from '../../js/engine/scene.js';
-import { startLoop } from '../../js/engine/loop.js';
-import { screenToLogical } from '../../js/engine/input.js';
-import { PauseOverlay } from '../../js/engine/pause.js';
-import { BackgroundLayer } from '../../js/layers/background.js';
-import { CharactersLayer } from '../../js/layers/characters.js';
-import { PianoLayer, hitTest, KB_FROM } from '../../js/layers/piano.js';
-import { EffectsLayer } from '../../js/layers/effects.js';
+import { playNote, playChord } from '../../js/audio.js';
+import { createStage, bindShortcuts, onButton, bindSoundToggle } from '../../js/shell.js';
+import { computeMarks, KB_FROM } from '../../js/layers/piano.js';
 import { UiLayer } from '../../js/layers/ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -54,16 +48,26 @@ const els = {
 
 const bus = new EventBus();
 const trainer = new Trainer({ bus });
-const renderer = new Renderer(els.canvas);
-const scene = new Scene();
-const piano = new PianoLayer(bus);
-
-scene.set('background', new BackgroundLayer());
-scene.set('characters', new CharactersLayer());
-scene.set('piano', piano);
-scene.set('effects', new EffectsLayer());
+const stage = createStage({
+  canvas: els.canvas,
+  stage: els.stage,
+  reserved: () => els.header.offsetHeight + els.controls.offsetHeight + 40,
+  isPaused: () => trainer.paused,
+  onNote: (midi) => trainer.noteOn(midi, 'screen'),
+});
+const { piano, scene } = stage;
 scene.set('ui', new UiLayer(bus, trainer));
-const pauseOverlay = new PauseOverlay();
+
+/* ---------------- Teclado: qué muestra en cada momento ---------------- */
+
+bus.on('exercise:new', () => piano.clearMarks());
+bus.on('selection:change', ({ notes }) => piano.setSelected(notes));
+function showAnswerOnKeys({ notes, result, root, type }) {
+  const { marks, labels } = computeMarks(notes, result, root, type, piano.from, piano.to);
+  piano.setMarks(marks, labels);
+}
+bus.on('answer:correct', showAnswerOnKeys);
+bus.on('answer:wrong', showAnswerOnKeys);
 
 /* ---------------- Sonido (dentro del mismo evento del clic: el bus es síncrono) ---------------- */
 
@@ -72,26 +76,6 @@ const referenceVoicing = ({ root, type }) => rootPositionVoicing(root, type, KB_
 bus.on('note:on', ({ midi }) => playNote(midi));
 bus.on('answer:correct', ({ notes }) => playChord(notes)); // su propio voicing, con la inversión
 bus.on('answer:wrong', (d) => playChord(referenceVoicing(d)));
-
-/* ---------------- Entrada: clic/toque en el canvas ---------------- */
-
-const point = { x: 0, y: 0 };
-els.canvas.addEventListener('pointerdown', (event) => {
-  if (!screenToLogical(event.clientX, event.clientY, els.canvas.getBoundingClientRect(), point)) return;
-  const midi = hitTest(piano.keys, point.x, point.y);
-  if (midi === -1) return;
-  event.preventDefault();
-  trainer.noteOn(midi, 'screen');
-});
-
-/* ---------------- Escalado ---------------- */
-
-function fit() {
-  const reserved = els.header.offsetHeight + els.controls.offsetHeight + 40;
-  renderer.resize(els.stage.clientWidth, Math.max(180, window.innerHeight - reserved));
-}
-window.addEventListener('resize', fit);
-fit();
 
 /* ---------------- Paneles HTML ---------------- */
 
@@ -178,16 +162,7 @@ function renderSession(s = trainer.session) {
 
 /* ---------------- Sonido y nombres de notas ---------------- */
 
-function renderSoundToggle() {
-  const muted = isMuted();
-  els.soundToggle.textContent = muted ? 'Sonido: no' : 'Sonido: sí';
-  els.soundToggle.setAttribute('aria-pressed', String(!muted));
-}
-
-els.soundToggle.addEventListener('click', () => {
-  setMuted(!isMuted());
-  renderSoundToggle();
-});
+bindSoundToggle(els.soundToggle);
 
 let showNames = load('showNames', false) === true;
 function renderNamesToggle() {
@@ -295,33 +270,23 @@ function listenAction() {
   if (!trainer.paused && trainer.current) playChord(referenceVoicing(trainer.current));
 }
 
-function onButton(button, action) {
-  button.addEventListener('click', (event) => {
-    action();
-    // Tras un clic con mouse, soltar el foco para que Enter/Espacio vayan a los atajos.
-    if (event.detail > 0) button.blur();
-  });
-}
-
 onButton(els.mainBtn, mainAction);
 onButton(els.clearBtn, () => trainer.clear());
 onButton(els.listenBtn, listenAction);
 onButton(els.namesBtn, toggleNames);
 
-document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
-  // Atajos solo con el foco en la página o en el canvas (no en casillas ni botones enfocados).
-  const target = event.target;
-  if (target !== document.body && target !== els.canvas) return;
-
-  if (event.key === 'p' || event.key === 'P' || event.key === 'Pause') trainer.togglePause();
-  else if (trainer.paused) return; // en pausa solo responde el atajo de pausa
-  else if (event.key === 'Enter') mainAction();
-  else if (event.key === 'Escape') trainer.clear();
-  else if (event.key === ' ') listenAction();
-  else if (event.key === 'n' || event.key === 'N') toggleNames();
-  else return;
-  event.preventDefault();
+bindShortcuts({
+  canvas: els.canvas,
+  isPaused: () => trainer.paused,
+  togglePause: () => trainer.togglePause(),
+  keys: {
+    Enter: mainAction,
+    Escape: () => trainer.clear(),
+    ' ': listenAction,
+    n: toggleNames,
+    ArrowLeft: () => stage.shiftRange(-1), // ventana de teclas: C2–C4 ← C3–C5 → C4–C6
+    ArrowRight: () => stage.shiftRange(1),
+  },
 });
 
 /* ---------------- Pausa (atajo P, sin botón en pantalla) ---------------- */
@@ -333,16 +298,9 @@ bus.on('pause:change', ({ paused }) => {
 
 /* ---------------- Inicio ---------------- */
 
-renderSoundToggle();
 renderNamesToggle();
 renderConfig();
 renderSession();
 renderProgress();
 trainer.next();
-startLoop((dt) => {
-  if (!trainer.paused) scene.update(dt); // en pausa no avanza nada: el tiempo de la escena se congela
-}, () => {
-  scene.draw(renderer.bctx);
-  if (trainer.paused) pauseOverlay.draw(renderer.bctx);
-  renderer.present();
-});
+stage.start();

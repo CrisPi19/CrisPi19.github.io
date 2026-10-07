@@ -34,8 +34,8 @@ el título de las páginas y en la interfaz).
 - Repetición espaciada Leitner (cajas 1–5); "rápido" = ≤ 2 s por nota del acorde.
 - **Solo modo oscuro** (la escena es un conservatorio de noche).
 - En celular se acepta el canvas a escala ×1 (teclas pequeñas) por ahora.
-- Accesibilidad: atajos de teclado (Enter, Esc, Espacio, N); las teclas del canvas no son
-  elementos accesibles para lectores de pantalla.
+- Accesibilidad: atajos de teclado (Enter, Esc, Espacio, N, ← →); las teclas del canvas no
+  son elementos accesibles para lectores de pantalla.
 - **Pausa** con la tecla P (o Pausa): no tiene botón ni aparece en pantalla. Al pausar se
   detiene todo (escena, cronómetro, entrada de notas y botones), se oculta el acorde y el
   canvas muestra "En pausa" sobre una trama oscura. El tiempo en pausa no cuenta para la
@@ -93,7 +93,15 @@ El teclado y el nombre del acorde son siempre lo de mayor contraste. Fondo, pers
 efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
 
 ### Teclado
-- 2 octavas (C3–C5) procedurales sobre el cuerpo de un piano de madera.
+- 2 octavas procedurales sobre el cuerpo de un piano de madera.
+- **3 ventanas fijas**: C2–C4, C3–C5 (inicial) y C4–C6. Se cambia de una en una con las
+  flechitas de las mejillas del piano (abajo a la izquierda/derecha) o con ← →. **Sin
+  deslizar** ni animación. La selección y las marcas se guardan por nota MIDI y sobreviven
+  al cambio. Flecha azul = hay teclas seleccionadas/marcadas en ese lado; flecha que
+  **brilla** (dorado/blanco a 4 fps) = el módulo lo pide con `piano.setArrowHint()`
+  (p. ej. en Lectura, la nota está en otra ventana). Lectura exige la octava exacta.
+- El teclado no conoce los ejercicios: cada módulo le dice qué mostrar con
+  `setSelected()`, `setMarks()` y `clearMarks()`.
 - Estados: normal, seleccionada (baja 1 px), acierto (verde), error (rojo); en un error,
   las notas que faltaron se marcan en naranja.
 - **Ninguna animación ni efecto puede revelar la respuesta antes de confirmar.**
@@ -107,6 +115,8 @@ efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
 - Animaciones con parámetros cuantizados (se leen a 8–12 fps aunque el bucle vaya a 60).
 - Timestep fijo 60 Hz + `requestAnimationFrame`. **Cero asignaciones dentro del bucle.**
 - El sonido se dispara en el evento del clic, nunca desde el bucle.
+- Las muestras de piano se precargan al abrir la página (si no, los primeros segundos
+  suena el sintetizador de respaldo); el audio se enciende en el primer gesto.
 
 ### Fuera del canvas
 - Menús, configuración y explicaciones largas: HTML con la misma paleta y la fuente pixel
@@ -169,9 +179,10 @@ Dos perros blancos idénticos, diferenciados solo por la nariz (uno negra, otro 
   nariz (los ojos y contornos van en `ink`/`dog-outline`).
 
 ## Estadísticas
-- Historial de ejercicios en `localStorage`: acorde, acierto/error, notas que faltaron o
-  sobraron, inversión y tiempo de respuesta (máx. ~2000 registros). Por ahora solo se
-  guarda; más adelante el maestro lo presentará.
+- Historial de ejercicios (`js/history.js`): módulo, ítem, acierto/error, tiempo y detalles
+  (notas que faltaron o sobraron, inversión…), máx. 2000 registros. **Por ahora solo en
+  memoria: dura la sesión y se pierde al refrescar o reabrir.** Más adelante se guardará en
+  `localStorage` y el maestro lo presentará. (Las cajas Leitner sí se guardan.)
 
 ## Estructura
 ```
@@ -179,8 +190,11 @@ index.html               ← menú de módulos
 css/                     ← estilo compartido (paleta + fuente pixel)
 js/theory.js             ← teoría pura (notas, grados, acordes, validación)
 js/srs.js  storage.js    ← repetición espaciada, localStorage
+js/history.js            ← historial de respuestas (en memoria por ahora)
 js/audio.js              ← Tone.js
-js/trainer.js            ← lógica del ejercicio (sin DOM); emite eventos
+js/session.js            ← base de ejercicios (fases, cronómetro, pausa, Leitner, historial)
+js/trainer.js            ← ejercicio de acordes (extiende Session; sin DOM); emite eventos
+js/shell.js              ← armazón común de módulos: canvas, clics, flechas, atajos, sonido
 js/events.js             ← bus de eventos
 js/engine/               ← paleta, renderer, loop, fuente, input, partículas, sprites
 js/layers/               ← background, characters, piano, effects, ui
@@ -198,7 +212,19 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
 - Explicar las decisiones y no saltarse pasos: estoy aprendiendo mientras construyo.
 - Avanzar por etapas y esperar mi revisión entre cada una.
 - Sistema visual: etapa 1 (canvas, escalado, paleta, fuente bitmap, capas y teclado) ✅
-  aprobada. Siguiente: **módulo 2 (MIDI)**, y luego los módulos 3–6.
+  aprobada.
+- **Módulo 2 (MIDI) pospuesto** hasta tener cable MIDI. Se sigue con los módulos 3–6 según
+  este plan (una revisión entre etapas):
+  0. Piezas comunes: `shell.js`, `session.js`, API del teclado + 3 ventanas, `history.js`.
+  1. Teoría (escalas, intervalos, `spellVoicing`) + `js/staff.js` (VexFlow).
+  2. Módulo 3 Explorador (incluye "Comparar con…", p. ej. lidio vs mayor).
+  3–4. Módulo 4 Lectura (sol, luego fa y acordes escritos): responde con la primera
+     tecla, octava exacta.
+  5. Módulo 5 Intervalos y escalas (visual y de oído).
+  6. Módulo 6 MusicXML: en pantalla se acepta cualquier octava y la ventana sigue a la
+     partitura; con MIDI, octava exacta.
+- Escalas: mayor, menor natural/armónica/melódica, los 7 modos, pentatónicas mayor y
+  menor, y blues. Ninguna más por ahora.
 - Al terminar los 6 módulos: efectos y partículas; mascotas (sprites, máquina de estados,
   diálogos); fondo del conservatorio y los 2 colores reservados. El historial de
   estadísticas puede adelantarse si un módulo lo necesita.

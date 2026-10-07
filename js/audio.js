@@ -1,10 +1,13 @@
 /*
  * Sonido con Tone.js (cargado como script clásico desde el CDN, queda en la global `Tone`).
  *
- * - Los navegadores solo permiten iniciar audio tras un gesto del usuario (clic/tecla),
- *   por eso el instrumento se crea la primera vez que se pide un sonido.
  * - Instrumento: muestras reales de piano (Salamander Grand Piano, las que usa la
- *   documentación de Tone.js). Mientras descargan, suena un sintetizador simple.
+ *   documentación de Tone.js). Se empiezan a descargar APENAS carga la página: si se
+ *   esperara al primer clic, los primeros segundos sonaría el sintetizador de respaldo
+ *   (una onda triangular, "plana"). Descargar y decodificar no necesita permiso.
+ * - Lo que sí exige un gesto del usuario (clic/tecla) es ENCENDER el audio: Tone.start()
+ *   se llama en el primer sonido pedido.
+ * - Si las muestras aún no llegan (conexión lenta), suena un sintetizador simple.
  * - Si Tone.js no cargó (sin internet), las funciones no hacen nada: la app funciona igual.
  */
 import { load, save } from './storage.js';
@@ -28,6 +31,7 @@ function sampleUrls() {
 }
 
 function createInstrument() {
+  if (instrument || typeof Tone === 'undefined') return;
   const synth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: 'triangle' },
     envelope: { attack: 0.005, decay: 0.4, sustain: 0.15, release: 1 },
@@ -48,8 +52,15 @@ function createInstrument() {
 function ensureAudio() {
   if (typeof Tone === 'undefined') return false;
   if (Tone.getContext().state !== 'running') Tone.start();
-  if (!instrument) createInstrument();
+  createInstrument();
   return true;
+}
+
+// Precarga al importar el módulo (ver comentario inicial).
+try {
+  createInstrument();
+} catch {
+  /* sin audio: la app funciona igual */
 }
 
 const toNote = (midi) => Tone.Frequency(midi, 'midi').toNote();

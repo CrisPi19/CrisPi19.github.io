@@ -10,7 +10,10 @@ import { grade, pickNext, createItem, MAX_BOX } from '../js/srs.js';
 import { COLORS, C } from '../js/engine/palette.js';
 import { missingChars, measure } from '../js/engine/font.js';
 import { screenToLogical } from '../js/engine/input.js';
-import { buildKeys, hitTest, computeMarks, MARK } from '../js/layers/piano.js';
+import {
+  buildKeys, hitTest, computeMarks, MARK, arrowAt, rangeFor, PianoLayer, RANGES,
+} from '../js/layers/piano.js';
+import { getHistory, clearHistory, record, MAX_RECORDS } from '../js/history.js';
 import { EventBus } from '../js/events.js';
 import { Trainer } from '../js/trainer.js';
 
@@ -230,6 +233,52 @@ test('computeMarks: correctas con grado, sobrantes con nombre, faltantes en nara
   eq([marks.get(60), marks.get(64), labels.get(64)], [MARK.MISSING, MARK.MISSING, '7']);
 });
 
+/* ---------- Teclado: ventanas y flechas ---------- */
+
+test('buildKeys en otra ventana: misma geometría, otras notas (C4–C6)', () => {
+  const k4 = buildKeys(60, 84);
+  eq([k4.length, k4[0].midi, k4[0].x, k4[24].midi], [25, 60, 10, 84]);
+  eq(k4.map((k) => k.x), keys.map((k) => k.x));
+});
+
+test('arrowAt: mejillas izquierda y derecha a la altura del teclado', () => {
+  eq([arrowAt(4, 168), arrowAt(315, 168), arrowAt(150, 168), arrowAt(4, 50)], [-1, 1, 0, 0]);
+});
+
+test('rangeFor: prefiere la ventana actual y luego la más cercana', () => {
+  eq(rangeFor(64, 48), 48); // E4 se ve en C3–C5
+  eq(rangeFor(64, 60), 60); // …y también en C4–C6: no cambia
+  eq(rangeFor(79, 48), 60); // G5 solo en C4–C6
+  eq(rangeFor(40, 60), 36); // E2 solo en C2–C4
+  eq(rangeFor(30, 48), -1); // fuera de todas
+});
+
+test('PianoLayer: cambia de ventana de una en una y no pasa de los extremos', () => {
+  const p = new PianoLayer();
+  eq([p.from, p.to], [48, 72]);
+  eq([p.shiftRange(1), p.from, p.keys[0].midi], [true, 60, 60]);
+  eq([p.shiftRange(1), p.from], [false, 60]);
+  eq([p.arrowAt(315, 168), p.arrowAt(4, 168)], [0, -1]);
+  p.shiftRange(-1);
+  p.shiftRange(-1);
+  eq([p.from, p.shiftRange(-1), RANGES.includes(p.from)], [36, false, true]);
+});
+
+test('PianoLayer: la selección sobrevive al cambio de ventana y avisa qué hay fuera', () => {
+  const p = new PianoLayer();
+  p.setSelected([50, 76]); // D3 y E5 (E5 está fuera de C3–C5)
+  eq([p.offscreen[-1], p.offscreen[1]], [false, true]);
+  p.shiftRange(1); // C4–C6: ahora D3 queda fuera a la izquierda
+  eq([p.offscreen[-1], p.offscreen[1], p.selected[50 - 36], p.selected[76 - 36]], [true, false, 1, 1]);
+});
+
+test('PianoLayer: setMarks reemplaza las marcas anteriores', () => {
+  const p = new PianoLayer();
+  p.setMarks(new Map([[60, MARK.CORRECT]]), new Map([[60, '1']]));
+  p.setMarks(new Map([[62, MARK.WRONG]]));
+  eq([p.marks[60 - 36], p.marks[62 - 36], p.degreeSprites[60 - 36]], [0, MARK.WRONG, null]);
+});
+
 /* ---------- Entrenador (lógica + eventos) ---------- */
 
 function makeTrainer() {
@@ -312,6 +361,35 @@ test('trainer: en pausa no entran notas, borrados ni respuestas', () => {
   trainer.togglePause();
   trainer.noteOn(57);
   eq(trainer.getSelected(), [53, 57]);
+});
+
+test('trainer: los eventos llevan kind = chord', () => {
+  const { trainer, log } = makeTrainer();
+  trainer.next();
+  trainer.noteOn(53);
+  trainer.submit();
+  eq(log.find(([t]) => t === 'exercise:new')[1].kind, 'chord');
+  eq(log[log.length - 1][1].kind, 'chord');
+});
+
+/* ---------- Historial (solo en memoria) ---------- */
+
+test('historial: cada respuesta deja un registro con lo que faltó y sobró', () => {
+  clearHistory();
+  const { trainer } = makeTrainer();
+  trainer.next();
+  [53, 57, 63].forEach((m) => trainer.noteOn(m)); // F A Eb para Fmaj7
+  trainer.submit();
+  const [r] = getHistory('chord');
+  eq([r.item, r.correct, r.missing, r.extra, r.inversion], ['F|maj7', false, ['C', 'E'], [63], null]);
+});
+
+test('historial: no pasa del tope y descarta los más viejos', () => {
+  clearHistory();
+  for (let i = 0; i < MAX_RECORDS + 5; i++) record({ module: 'x', item: String(i) });
+  const all = getHistory();
+  eq([all.length, all[0].item], [MAX_RECORDS, '5']);
+  clearHistory();
 });
 
 /* ---------- Mostrar resultados ---------- */
