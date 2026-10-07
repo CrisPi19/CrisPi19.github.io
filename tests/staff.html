@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pentagrama · CrisPianist</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/tiny5@5.3.0/index.css">
+  <link rel="stylesheet" href="../css/palette.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.5/build/cjs/vexflow.js"></script>
+  <style>
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-3); }
+    .case { padding: var(--sp-3); }
+    .case h2 { font-size: 18px; margin-bottom: var(--sp-1); }
+    .case p { font-size: 14px; margin-bottom: var(--sp-2); }
+    .case.wide { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Prueba visual del pentagrama</h1>
+    <p class="muted">Cada caso dice qué se debe ver. Revisar letras, alteraciones, octavas y colores.</p>
+    <div class="grid" id="cases"></div>
+  </main>
+  <script type="module">
+    import { Staff } from '../js/staff.js';
+    import {
+      spellVoicing, spellScaleVoicing, fitToRange, pitchAbove, displayNote,
+    } from '../js/theory.js';
+    import { C } from '../js/engine/palette.js';
+
+    const show = (p) => p.map((n) => displayNote(n.name) + n.octave).join(' ');
+    const tonic = (notes) => Object.fromEntries(notes.map((n, i) => [i, n.degree === '1' || n.degree === '8' ? C.FX_GOLD : null]).filter(([, c]) => c != null));
+
+    const cases = [
+      { title: 'Fmaj7', notes: spellVoicing('F', 'maj7', 48), mode: 'chord', clef: 'treble' },
+      { title: 'B♭m7 (bemoles)', notes: spellVoicing('Bb', 'm7', 48), mode: 'chord' },
+      { title: 'E♭dim (doble bemol: B𝄫)', notes: spellVoicing('Eb', 'dim', 60), mode: 'chord' },
+      { title: 'C7 en clave de fa', notes: spellVoicing('C', 'dom7', 36), mode: 'chord' },
+      { title: 'B9 ajustado a C3–C5 (la 9.ª baja)', notes: fitToRange(spellVoicing('B', 'dom9', 48), 48, 72), mode: 'chord', clef: 'treble' },
+      { title: 'Intervalo 3M sobre G♯4 (B♯, no C)', notes: [{ name: 'G#', octave: 4, midi: 68 }, { ...pitchAbove({ name: 'G#', octave: 4 }, '3'), midi: 72 }], mode: 'chord' },
+      { title: 'D lidio, tónica en dorado, con grados', notes: spellScaleVoicing('D', 'lydian', 60), mode: 'sequence', labels: true, tonicColor: true, wide: true },
+      { title: 'D♭ locrio (dobles bemoles)', notes: spellScaleVoicing('Db', 'locrian', 60), mode: 'sequence', labels: true, wide: true },
+      { title: 'A blues en clave de fa', notes: spellScaleVoicing('A', 'blues', 45), mode: 'sequence', labels: true, wide: true },
+      { title: 'F♯ menor armónica (E♯)', notes: spellScaleVoicing('F#', 'harmonic', 54), mode: 'sequence', labels: true, wide: true },
+    ];
+
+    const root = document.getElementById('cases');
+    for (const c of cases) {
+      const box = document.createElement('section');
+      box.className = `panel case${c.wide ? ' wide' : ''}`;
+      box.innerHTML = `<h2>${c.title}</h2><p class="muted">${show(c.notes)}</p><div class="staff"></div>`;
+      root.appendChild(box);
+      new Staff(box.querySelector('.staff')).render({
+        notes: c.notes, mode: c.mode, clef: c.clef, labels: c.labels,
+        colors: c.tonicColor ? tonic(c.notes) : {},
+      });
+    }
+  </script>
+</body>
+</html>

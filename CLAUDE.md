@@ -19,7 +19,7 @@ el título de las páginas y en la interfaz).
   Módulos ES nativos; para desarrollar se usa un servidor local (`python -m http.server 8000`).
 - Librerías cargadas por CDN (jsDelivr o cdnjs) con versión fijada:
   - Tone.js: sonido
-  - VexFlow: dibujar pentagrama
+  - VexFlow 4.2.5 (`build/cjs/vexflow.js`, global `Vex`): dibujar pentagrama, vía `js/staff.js`
   - OpenSheetMusicDisplay: renderizar archivos MusicXML
 - Entrada por teclado MIDI real con la **Web MIDI API** (Chrome/Edge en computador).
   Siempre debe existir un teclado en pantalla como alternativa (clic/toque).
@@ -188,7 +188,9 @@ Dos perros blancos idénticos, diferenciados solo por la nariz (uno negra, otro 
 ```
 index.html               ← menú de módulos
 css/                     ← estilo compartido (paleta + fuente pixel)
-js/theory.js             ← teoría pura (notas, grados, acordes, validación)
+js/theory.js             ← teoría pura (notas, grados, acordes, escalas, intervalos,
+                           notas escritas con octava, validación)
+js/staff.js              ← pentagrama (VexFlow) en panel HTML, colores de la paleta
 js/srs.js  storage.js    ← repetición espaciada, localStorage
 js/history.js            ← historial de respuestas (en memoria por ahora)
 js/audio.js              ← Tone.js
@@ -203,7 +205,8 @@ data/                    ← diálogos
 assets/palette/  assets/sprites/
 tools/                   ← scripts de apoyo (exportar paleta)
 modules/<modulo>/        ← una carpeta por módulo
-tests/                   ← pruebas en el navegador (tests/index.html)
+tests/                   ← pruebas en el navegador (tests/index.html) y prueba visual
+                           del pentagrama (tests/staff.html)
 ```
 La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y probarla.
 

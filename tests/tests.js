@@ -5,7 +5,10 @@
 import {
   spellChord, spellDegree, chordPitchClasses, chordName, analyzeAnswer,
   rootPositionVoicing, notePc, displayNote, parseDegree, CHORD_TYPES, ROOTS,
+  SCALE_TYPES, INTERVALS, spellScale, scalePitchClasses, pitchMidi, pitchFromMidi, pitchAbove,
+  pitchBelow, intervalBetween, intervalSemitones, spellVoicing, spellScaleVoicing, fitToRange,
 } from '../js/theory.js';
+import { vexKey, vexAccidental, clefFor } from '../js/staff.js';
 import { grade, pickNext, createItem, MAX_BOX } from '../js/srs.js';
 import { COLORS, C } from '../js/engine/palette.js';
 import { missingChars, measure } from '../js/engine/font.js';
@@ -124,6 +127,121 @@ test('sin notas no es correcto', () => {
   eq(analyzeAnswer([], 'C', 'maj').correct, false);
 });
 
+/* ---------- Escalas ---------- */
+
+const scaleSpellings = [
+  ['C', 'major', 'C D E F G A B'],
+  ['A', 'minor', 'A B C D E F G'],
+  ['F#', 'harmonic', 'F# G# A B C# D E#'],
+  ['D', 'melodic', 'D E F G A B C#'],
+  ['D', 'dorian', 'D E F G A B C'],
+  ['E', 'phrygian', 'E F G A B C D'],
+  ['D', 'lydian', 'D E F# G# A B C#'],
+  ['F', 'lydian', 'F G A B C D E'],
+  ['G', 'mixolydian', 'G A B C D E F'],
+  ['Db', 'locrian', 'Db Ebb Fb Gb Abb Bbb Cb'],
+  ['Bb', 'pentaMajor', 'Bb C D F G'],
+  ['E', 'pentaMinor', 'E G A B D'],
+  ['A', 'blues', 'A C D Eb E G'],
+];
+for (const [root, scale, expected] of scaleSpellings) {
+  test(`spellScale ${root} ${scale} = ${expected}`, () => eq(spellScale(root, scale).join(' '), expected));
+}
+
+test('escalas de 7 notas: una letra distinta por grado, en todas las tónicas', () => {
+  for (const root of ROOTS) {
+    for (const [id, scale] of Object.entries(SCALE_TYPES)) {
+      if (scale.degrees.length !== 7) continue;
+      const letters = spellScale(root, id).map((n) => n[0]);
+      if (new Set(letters).size !== 7) throw new Error(`${root} ${id}: ${letters}`);
+    }
+  }
+});
+
+test('scalePitchClasses D lidio', () => eq(scalePitchClasses('D', 'lydian'), [2, 4, 6, 8, 9, 11, 1]));
+
+/* ---------- Intervalos y notas escritas ---------- */
+
+test('pitchMidi: C4 = 60, Cb4 = 59 (se escribe en C4, suena como B3), B#3 = 60', () => {
+  eq([pitchMidi({ name: 'C', octave: 4 }), pitchMidi({ name: 'Cb', octave: 4 }), pitchMidi({ name: 'B#', octave: 3 })], [60, 59, 60]);
+});
+
+test('pitchFromMidi recupera la octava escrita', () => {
+  eq([pitchFromMidi('Cb', 59), pitchFromMidi('B#', 60), pitchFromMidi('Eb', 51)],
+    [{ name: 'Cb', octave: 4 }, { name: 'B#', octave: 3 }, { name: 'Eb', octave: 3 }]);
+});
+
+test('pitchAbove: 3m sobre B3 = D4; 3M sobre G#4 = B#4; 9 sobre C4 = D5', () => {
+  eq(pitchAbove({ name: 'B', octave: 3 }, 'b3'), { name: 'D', octave: 4 });
+  eq(pitchAbove({ name: 'G#', octave: 4 }, '3'), { name: 'B#', octave: 4 });
+  eq(pitchAbove({ name: 'C', octave: 4 }, '9'), { name: 'D', octave: 5 });
+});
+
+test('pitchBelow: 3M bajo C4 = Ab3; 5J bajo F4 = Bb3', () => {
+  eq(pitchBelow({ name: 'C', octave: 4 }, '3'), { name: 'Ab', octave: 3 });
+  eq(pitchBelow({ name: 'F', octave: 4 }, '5'), { name: 'Bb', octave: 3 });
+});
+
+test('intervalBetween: cuenta letras y semitonos (4A ≠ 5d)', () => {
+  const p = (name, octave) => ({ name, octave });
+  eq(intervalBetween(p('C', 4), p('E', 4)), 'M3');
+  eq(intervalBetween(p('C', 4), p('F#', 4)), 'A4');
+  eq(intervalBetween(p('C', 4), p('Gb', 4)), 'd5');
+  eq(intervalBetween(p('E', 4), p('C', 4)), 'M3'); // en cualquier orden
+  eq(intervalBetween(p('C', 4), p('D', 5)), 'M9');
+  eq(intervalBetween(p('C', 4), p('D#', 4)), null); // 2.ª aumentada: no está en la lista
+});
+
+test('cada intervalo de la lista se reconoce a sí mismo desde cualquier tónica', () => {
+  for (const root of ROOTS) {
+    const low = { name: root, octave: 4 };
+    for (const [id, { degree }] of Object.entries(INTERVALS)) {
+      const got = intervalBetween(low, pitchAbove(low, degree));
+      if (got !== id) throw new Error(`${root} + ${id} → ${got}`);
+    }
+  }
+  eq(intervalSemitones('m6'), 8);
+});
+
+test('spellVoicing: B♭m7 desde C3 = B♭3 D♭4 F4 A♭4 con sus MIDI y grados', () => {
+  const v = spellVoicing('Bb', 'm7', 48);
+  eq(v.map((n) => `${n.name}${n.octave}`), ['Bb3', 'Db4', 'F4', 'Ab4']);
+  eq(v.map((n) => n.midi), [58, 61, 65, 68]);
+  eq(v.map((n) => n.degree), ['1', 'b3', '5', 'b7']);
+});
+
+test('spellVoicing coincide en sonido con rootPositionVoicing para todos los acordes', () => {
+  for (const root of ROOTS) {
+    for (const type of Object.keys(CHORD_TYPES)) {
+      eq(spellVoicing(root, type, 48).map((n) => n.midi), rootPositionVoicing(root, type, 48));
+    }
+  }
+});
+
+test('spellScaleVoicing: D lidio desde C4 sube una octava hasta D5', () => {
+  const v = spellScaleVoicing('D', 'lydian', 60);
+  eq(v.map((n) => `${n.name}${n.octave}`), ['D4', 'E4', 'F#4', 'G#4', 'A4', 'B4', 'C#5', 'D5']);
+  eq(v[7].degree, '8');
+});
+
+test('fitToRange: la 9.ª de B9 baja una octava para caber en C3–C5 y sigue siendo la 9', () => {
+  const v = fitToRange(spellVoicing('B', 'dom9', 48), 48, 72);
+  eq(v.map((n) => `${n.name}${n.octave}`), ['B3', 'C#4', 'D#4', 'F#4', 'A4']);
+  eq(v[1].degree, '9');
+  eq(Math.max(...v.map((n) => n.midi)) <= 72, true);
+});
+
+/* ---------- Pentagrama: traducción a VexFlow ---------- */
+
+test('vexKey y vexAccidental separan letra/octava de la alteración', () => {
+  const p = { name: 'Bbb', octave: 3 };
+  eq([vexKey(p), vexAccidental(p), vexAccidental({ name: 'C', octave: 4 })], ['b/3', 'bb', null]);
+});
+
+test('clefFor: fa si el promedio está bajo el Do central', () => {
+  eq([clefFor(spellVoicing('C', 'maj', 36)), clefFor(spellVoicing('C', 'maj', 60))], ['bass', 'treble']);
+});
+
 /* ---------- Repetición espaciada ---------- */
 
 const fast = { correct: true, timeMs: 1000, slowThresholdMs: 5000, now: 1 };
@@ -180,6 +298,18 @@ test('la fuente cubre todos los nombres de acordes, notas y textos del canvas', 
     }
   }
   eq(missingChars('¡Correcto! No es correcto · 1.ª inversión: (Am6/9)/C · Marca al menos una tecla.'), []);
+});
+
+test('la fuente cubre nombres de escalas, intervalos y sus notas', () => {
+  const texts = [
+    ...Object.values(SCALE_TYPES).map((s) => s.name),
+    ...Object.values(INTERVALS).flatMap((i) => [i.name, i.short]),
+    ...ROOTS.flatMap((r) => Object.keys(SCALE_TYPES).flatMap((s) => spellScale(r, s).map(displayNote))),
+  ];
+  for (const t of texts) {
+    const missing = missingChars(t);
+    if (missing.length) throw new Error(`"${t}" usa ${missing.join(' ')}`);
+  }
 });
 
 test('measure: ancho proporcional con 1 px entre letras', () => {

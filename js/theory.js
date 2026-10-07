@@ -212,3 +212,177 @@ export function analyzeAnswer(midiNotes, root, typeId) {
 
   return { correct, missing, extra, degreeOf, bass, inversion, slashName };
 }
+
+/* ---------------- Escalas ---------------- */
+
+/**
+ * Escalas como fórmulas de grados, igual que los acordes: así se deletrean con una letra
+ * por grado (D lidio = D E F♯ G♯ A B C♯, nunca A♭ en vez de G♯).
+ * El modo jónico es la escala mayor y el eólico la menor natural: no se repiten en "modos".
+ */
+export const SCALE_TYPES = {
+  major:      { name: 'Mayor (jónico)',         group: 'mayor-menor',  degrees: ['1', '2', '3', '4', '5', '6', '7'] },
+  minor:      { name: 'Menor natural (eólico)', group: 'mayor-menor',  degrees: ['1', '2', 'b3', '4', '5', 'b6', 'b7'] },
+  harmonic:   { name: 'Menor armónica',         group: 'mayor-menor',  degrees: ['1', '2', 'b3', '4', '5', 'b6', '7'] },
+  melodic:    { name: 'Menor melódica',         group: 'mayor-menor',  degrees: ['1', '2', 'b3', '4', '5', '6', '7'] },
+  dorian:     { name: 'Dórico',                 group: 'modos',        degrees: ['1', '2', 'b3', '4', '5', '6', 'b7'] },
+  phrygian:   { name: 'Frigio',                 group: 'modos',        degrees: ['1', 'b2', 'b3', '4', '5', 'b6', 'b7'] },
+  lydian:     { name: 'Lidio',                  group: 'modos',        degrees: ['1', '2', '3', '#4', '5', '6', '7'] },
+  mixolydian: { name: 'Mixolidio',              group: 'modos',        degrees: ['1', '2', '3', '4', '5', '6', 'b7'] },
+  locrian:    { name: 'Locrio',                 group: 'modos',        degrees: ['1', 'b2', 'b3', '4', 'b5', 'b6', 'b7'] },
+  pentaMajor: { name: 'Pentatónica mayor',      group: 'pentatonicas', degrees: ['1', '2', '3', '5', '6'] },
+  pentaMinor: { name: 'Pentatónica menor',      group: 'pentatonicas', degrees: ['1', 'b3', '4', '5', 'b7'] },
+  blues:      { name: 'Blues',                  group: 'pentatonicas', degrees: ['1', 'b3', '4', 'b5', '5', 'b7'] },
+};
+
+export const SCALE_GROUPS = {
+  'mayor-menor': 'Mayor y menores',
+  modos: 'Modos',
+  pentatonicas: 'Pentatónicas y blues',
+};
+
+function getScale(scaleId) {
+  const scale = SCALE_TYPES[scaleId];
+  if (!scale) throw new Error(`Escala desconocida: ${scaleId}`);
+  return scale;
+}
+
+/** Notas deletreadas de la escala: ('D', 'lydian') → ['D','E','F#','G#','A','B','C#']. */
+export function spellScale(root, scaleId) {
+  return getScale(scaleId).degrees.map((d) => spellDegree(root, d));
+}
+
+export function scalePitchClasses(root, scaleId) {
+  const rootPc = notePc(root);
+  return getScale(scaleId).degrees.map((d) => mod12(rootPc + parseDegree(d).semitones));
+}
+
+/* ---------------- Intervalos ---------------- */
+
+/**
+ * Intervalos con nombre en español. `degree` es el grado que alcanza desde la nota de
+ * partida (3m = 'b3'), así se deletrea igual que los acordes: la 3m sobre B es D, no C𝄪.
+ * El tritono aparece dos veces porque se escribe distinto: 4A (C–F♯) y 5d (C–G♭).
+ */
+export const INTERVALS = {
+  m2: { short: '2m', name: 'Segunda menor',     degree: 'b2' },
+  M2: { short: '2M', name: 'Segunda mayor',     degree: '2' },
+  m3: { short: '3m', name: 'Tercera menor',     degree: 'b3' },
+  M3: { short: '3M', name: 'Tercera mayor',     degree: '3' },
+  P4: { short: '4J', name: 'Cuarta justa',      degree: '4' },
+  A4: { short: '4A', name: 'Cuarta aumentada',  degree: '#4' },
+  d5: { short: '5d', name: 'Quinta disminuida', degree: 'b5' },
+  P5: { short: '5J', name: 'Quinta justa',      degree: '5' },
+  m6: { short: '6m', name: 'Sexta menor',       degree: 'b6' },
+  M6: { short: '6M', name: 'Sexta mayor',       degree: '6' },
+  m7: { short: '7m', name: 'Séptima menor',     degree: 'b7' },
+  M7: { short: '7M', name: 'Séptima mayor',     degree: '7' },
+  P8: { short: '8J', name: 'Octava justa',      degree: '8' },
+  m9: { short: '9m', name: 'Novena menor',      degree: 'b9' },
+  M9: { short: '9M', name: 'Novena mayor',      degree: '9' },
+};
+
+export function intervalSemitones(intervalId) {
+  return parseDegree(INTERVALS[intervalId].degree).semitones;
+}
+
+/* ---------------- Notas escritas (con octava, para el pentagrama) ---------------- */
+
+/*
+ * Una nota ESCRITA es { name: 'Bb', octave: 3 }: letra + alteración + octava, con la
+ * convención científica (C4 = Do central). La octava va con la LETRA, no con el sonido:
+ * C♭4 suena igual que B3 (MIDI 59) pero se escribe en el espacio de C4. Por eso no basta
+ * con el número MIDI para dibujar una partitura.
+ */
+
+/** Pasos de letra desde C0 (C0 = 0, D0 = 1 … C1 = 7): sirve para medir distancias escritas. */
+function letterSteps({ name, octave }) {
+  return octave * 7 + LETTERS.indexOf(name[0]);
+}
+
+/** Número MIDI de una nota escrita: { name: 'Cb', octave: 4 } → 59. */
+export function pitchMidi({ name, octave }) {
+  const { letter, acc } = parseNote(name);
+  return 12 * (octave + 1) + LETTER_PC[letter] + acc;
+}
+
+/** Nota escrita a partir de su nombre y su MIDI: ('Cb', 59) → { name: 'Cb', octave: 4 }. */
+export function pitchFromMidi(name, midi) {
+  const { letter, acc } = parseNote(name);
+  const octave = (midi - LETTER_PC[letter] - acc) / 12 - 1;
+  if (!Number.isInteger(octave)) throw new Error(`${name} no suena como MIDI ${midi}`);
+  return { name, octave };
+}
+
+/** Nota escrita en cierto paso de letra que suena como `midi` (la alteración es lo que falta). */
+function pitchAt(steps, midi) {
+  const letter = LETTERS[((steps % 7) + 7) % 7];
+  const octave = Math.floor(steps / 7);
+  const acc = midi - (12 * (octave + 1) + LETTER_PC[letter]);
+  return { name: letter + accidentalText(acc), octave };
+}
+
+/** Nota escrita a cierto grado por ENCIMA: ({ B, 3 }, 'b3') → { name: 'D', octave: 4 }. */
+export function pitchAbove(pitch, degree) {
+  const { num, semitones } = parseDegree(degree);
+  return pitchAt(letterSteps(pitch) + num - 1, pitchMidi(pitch) + semitones);
+}
+
+/** Nota escrita a cierto grado por DEBAJO: ({ C, 4 }, '3') → { name: 'Ab', octave: 3 }. */
+export function pitchBelow(pitch, degree) {
+  const { num, semitones } = parseDegree(degree);
+  return pitchAt(letterSteps(pitch) - (num - 1), pitchMidi(pitch) - semitones);
+}
+
+/**
+ * Intervalo entre dos notas escritas (en cualquier orden), o null si no está en INTERVALS
+ * (por ejemplo una 2.ª aumentada). Cuenta letras Y semitonos: C–E es 3M; C–F♭ no es 3M.
+ */
+export function intervalBetween(a, b) {
+  const [low, high] = pitchMidi(a) <= pitchMidi(b) ? [a, b] : [b, a];
+  const num = letterSteps(high) - letterSteps(low) + 1;
+  const semitones = pitchMidi(high) - pitchMidi(low);
+  for (const [id, interval] of Object.entries(INTERVALS)) {
+    const d = parseDegree(interval.degree);
+    if (d.num === num && d.semitones === semitones) return id;
+  }
+  return null;
+}
+
+/**
+ * Notas escritas de una fórmula de grados; la tónica es la primera nota >= fromMidi.
+ * Devuelve [{ name, octave, midi, degree }] en el orden de la fórmula.
+ */
+function formulaVoicing(root, degrees, fromMidi) {
+  const rootMidi = fromMidi + mod12(notePc(root) - fromMidi);
+  const rootPitch = pitchFromMidi(root, rootMidi);
+  return degrees.map((degree) => {
+    const pitch = pitchAbove(rootPitch, degree);
+    return { ...pitch, midi: pitchMidi(pitch), degree };
+  });
+}
+
+/** Acorde escrito en posición fundamental: ('Bb', 'm7', 48) → B♭3 D♭4 F4 A♭4. */
+export function spellVoicing(root, typeId, fromMidi = 48) {
+  return formulaVoicing(root, getType(typeId).degrees, fromMidi);
+}
+
+/** Escala escrita subiendo una octava; con withOctave repite la tónica arriba (grado '8'). */
+export function spellScaleVoicing(root, scaleId, fromMidi = 48, { withOctave = true } = {}) {
+  const degrees = getScale(scaleId).degrees;
+  return formulaVoicing(root, withOctave ? [...degrees, '8'] : degrees, fromMidi);
+}
+
+/**
+ * Acomoda notas escritas dentro de [from, to] moviendo por octavas las que se salen
+ * (conservan nombre y grado). Así la 9.ª de B9 cabe en el teclado: se baja una octava
+ * y sigue siendo la "9". Devuelve una copia ordenada de grave a agudo.
+ */
+export function fitToRange(pitches, from, to) {
+  return pitches.map((p) => {
+    let { octave, midi } = p;
+    while (midi > to && midi - 12 >= from) { midi -= 12; octave -= 1; }
+    while (midi < from && midi + 12 <= to) { midi += 12; octave += 1; }
+    return { ...p, octave, midi };
+  }).sort((a, b) => a.midi - b.midi);
+}
