@@ -27,8 +27,9 @@ import { EffectsLayer } from './layers/effects.js';
  * @param reserved  función → px de alto que ocupan los demás elementos de la página
  * @param isPaused  función → ¿está en pausa? (congela escena, clics y flechas)
  * @param onNote    función (midi) al tocar una tecla en pantalla
+ * @param onRangeChange  función (opcional) tras cambiar de ventana, con flecha o con ← →
  */
-export function createStage({ canvas, stage, reserved, isPaused, onNote }) {
+export function createStage({ canvas, stage, reserved, isPaused, onNote, onRangeChange = () => {} }) {
   const renderer = new Renderer(canvas);
   const scene = new Scene();
   const piano = new PianoLayer();
@@ -39,8 +40,9 @@ export function createStage({ canvas, stage, reserved, isPaused, onNote }) {
   const pauseOverlay = new PauseOverlay();
 
   function shiftRange(dir) {
-    if (isPaused()) return false;
-    return piano.shiftRange(dir);
+    if (isPaused() || !piano.shiftRange(dir)) return false;
+    onRangeChange();
+    return true;
   }
 
   const point = { x: 0, y: 0 };
@@ -50,7 +52,7 @@ export function createStage({ canvas, stage, reserved, isPaused, onNote }) {
     const dir = piano.arrowAt(point.x, point.y);
     if (dir) {
       event.preventDefault();
-      piano.shiftRange(dir);
+      shiftRange(dir);
       return;
     }
     const midi = hitTest(piano.keys, point.x, point.y);

@@ -61,15 +61,19 @@ function accidentalOf({ name }) {
  * @param notes   notas escritas [{ name, octave, midi?, degree? }]
  * @param mode    'chord' (bloque) o 'sequence' (una tras otra)
  * @param clef    'treble' | 'bass' (por defecto, según la altura media)
- * @param labels  true: grado en números romanos bajo cada nota (solo en 'sequence')
+ * @param labels  true: texto bajo cada nota (solo en 'sequence'): su `label` si la trae
+ *                (p. ej. 'F♯4' en Lectura) o su grado en números romanos
  * @param colors  índice de nota (en el orden recibido) → índice de la paleta
+ * @param minWidth  ancho mínimo de la caja (para que no cambie de tamaño entre ejercicios)
  * @returns {
  *   width, height, clef: { glyph, x, y }, lines: [y], ledgers: [{ x, y, w }],
  *   heads: [{ x, y, index, displaced }], accidentals: [{ glyph, x, y, index }],
  *   labels: [{ text, cx, y, index }], colors
  * }  donde `index` es la posición de la nota en `notes` (para su color).
  */
-export function layoutStaff({ notes, mode = 'chord', clef = clefFor(notes), labels = false, colors = {} }) {
+export function layoutStaff({
+  notes, mode = 'chord', clef = clefFor(notes), labels = false, colors = {}, minWidth = 0,
+}) {
   const out = {
     width: MIN_CHORD_WIDTH,
     height: STAFF_HEIGHT,
@@ -83,9 +87,11 @@ export function layoutStaff({ notes, mode = 'chord', clef = clefFor(notes), labe
     labels: [],
     colors,
   };
-  if (!notes.length) return out;
-  if (mode === 'chord') layoutChord(out, notes, clef);
-  else layoutSequence(out, notes, clef, labels);
+  if (notes.length) {
+    if (mode === 'chord') layoutChord(out, notes, clef);
+    else layoutSequence(out, notes, clef, labels);
+  }
+  out.width = Math.max(out.width, minWidth);
   return out;
 }
 
@@ -171,9 +177,8 @@ function layoutSequence(out, notes, clef, labels) {
     const glyph = accidentalGlyph(acc);
     if (glyph) out.accidentals.push({ glyph, x: x - ACC_GAP - glyph.w + 1, y, index });
 
-    if (labels && p.degree) {
-      out.labels.push({ text: romanDegree(p.degree), cx: x + (head.w >> 1), y: LABEL_Y, index });
-    }
+    const text = p.label ?? (p.degree ? romanDegree(p.degree) : null);
+    if (labels && text) out.labels.push({ text, cx: x + (head.w >> 1), y: LABEL_Y, index });
   });
   out.width = NOTES_X + SEQ_ACC + notes.length * SLOT;
 }

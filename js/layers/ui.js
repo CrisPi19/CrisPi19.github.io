@@ -5,13 +5,14 @@
  *   - Burbuja de veredicto tras confirmar (corta; la explicación larga va en HTML).
  *
  * Todos los textos se convierten en sprites cuando llega el evento. En el bucle solo se
- * dibujan sprites ya hechos (el cronómetro usa sprites de dígitos sueltos).
+ * dibujan sprites ya hechos (el cronómetro, js/layers/timer.js, usa dígitos sueltos).
  */
 import { C } from '../engine/palette.js';
-import { renderText, makeGlyphSprites, CAP_TOP } from '../engine/font.js';
+import { renderText, CAP_TOP } from '../engine/font.js';
 import { makeBubble } from '../engine/bubble.js';
 import { W } from '../engine/renderer.js';
 import { CHORD_TYPES, displayNote, inversionName } from '../theory.js';
+import { TimerText } from './timer.js';
 
 const NAME_CAP_Y = 16; // fila donde empieza el cuerpo de la tónica (escala ×3)
 const BUBBLE_BOTTOM = 92;
@@ -25,11 +26,7 @@ export class UiLayer {
     this.bubble = null;
     this.bubbleKind = null;
 
-    const timerOpts = { color: C.STONE_2 };
-    const glyphs = makeGlyphSprites('0123456789,s', timerOpts);
-    this.digits = [...'0123456789'].map((d) => glyphs.get(d));
-    this.comma = glyphs.get(',');
-    this.secs = glyphs.get('s');
+    this.timer = new TimerText();
 
     bus.on('exercise:new', (d) => this.setChord(d));
     bus.on('answer:correct', (d) => this.showVerdict(d));
@@ -79,34 +76,10 @@ export class UiLayer {
       ctx.drawImage(this.typeSprite, (W - this.typeSprite.width) >> 1, 43 - CAP_TOP);
     }
 
-    this.drawTimer(ctx);
+    this.timer.draw(ctx, this.trainer.elapsedMs());
 
     if (this.bubble) {
       ctx.drawImage(this.bubble, (W - this.bubble.width) >> 1, BUBBLE_BOTTOM - this.bubble.height);
     }
-  }
-
-  /** Cronómetro "12,3 s" alineado a la derecha, dibujado de derecha a izquierda sin crear strings. */
-  drawTimer(ctx) {
-    let tenths = Math.floor(this.trainer.elapsedMs() / 100);
-    if (tenths > 99999) tenths = 99999;
-    const y = 5 - CAP_TOP;
-    let x = W - 6;
-
-    x -= this.secs.width;
-    ctx.drawImage(this.secs, x, y);
-    x -= 4;
-    let d = this.digits[tenths % 10];
-    x -= d.width;
-    ctx.drawImage(d, x, y);
-    x -= this.comma.width + 1;
-    ctx.drawImage(this.comma, x, y);
-    let whole = Math.floor(tenths / 10);
-    do {
-      d = this.digits[whole % 10];
-      x -= d.width + 1;
-      ctx.drawImage(d, x, y);
-      whole = Math.floor(whole / 10);
-    } while (whole > 0);
   }
 }

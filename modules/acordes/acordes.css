@@ -2,20 +2,6 @@
 
 /* ---------- Explicación ---------- */
 
-.feedback {
-  margin-bottom: var(--sp-4);
-}
-
-.feedback.is-correct { border-color: var(--ok-0); }
-.feedback.is-wrong { border-color: var(--bad-0); }
-
-.feedback-title {
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--text-strong);
-  margin-bottom: var(--sp-2);
-}
-
 .chord-notes {
   display: flex;
   flex-wrap: wrap;
@@ -46,34 +32,6 @@
   padding: var(--sp-2) var(--sp-3);
   border-left: 4px solid var(--night-3);
   background: var(--stone-1);
-}
-
-/* ---------- Sesión ---------- */
-
-.session {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--sp-3);
-}
-
-.stat-value {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: var(--text-muted);
 }
 
 /* ---------- Mapa de progreso ---------- */
@@ -119,17 +77,3 @@
 .progress-grid .row-head {
   justify-items: start;
 }
-
-.cell {
-  display: inline-block;
-  height: 24px;
-  border: 2px solid var(--ink);
-}
-
-.cell.is-off { opacity: 0.3; }
-.cell[data-box="0"] { background: var(--stone-1); }
-.cell[data-box="1"] { background: var(--bad-0); }
-.cell[data-box="2"] { background: var(--miss); }
-.cell[data-box="3"] { background: var(--fx-gold); }
-.cell[data-box="4"] { background: var(--ok-0); }
-.cell[data-box="5"] { background: var(--ok-1); }

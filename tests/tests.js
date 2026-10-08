@@ -27,6 +27,9 @@ import {
 import { getHistory, clearHistory, record, MAX_RECORDS } from '../js/history.js';
 import { EventBus } from '../js/events.js';
 import { Trainer } from '../js/trainer.js';
+import {
+  Reader, readingPitches, parsePitch, spellPlayed, describeMiss, sanitizeConfig as readingConfig,
+} from '../js/reading.js';
 
 const results = [];
 
@@ -666,6 +669,87 @@ test('historial: no pasa del tope y descarta los más viejos', () => {
   const all = getHistory();
   eq([all.length, all[0].item], [MAX_RECORDS, '5']);
   clearHistory();
+});
+
+/* ---------- Lectura ---------- */
+
+const texts = (ps) => ps.map((p) => p.name + p.octave);
+
+test('lectura: notas del pentagrama de sol (D4–G5) y de fa (F2–B3), solo naturales', () => {
+  eq(texts(readingPitches('treble')), ['D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5']);
+  eq(texts(readingPitches('bass')), ['F2', 'G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3']);
+});
+
+test('lectura: con líneas adicionales llega a 2 líneas (sol A3–C6, fa C2–E4)', () => {
+  const t = readingPitches('treble', { ledger: true });
+  const b = readingPitches('bass', { ledger: true });
+  eq([t.length, texts(t)[0], texts(t).at(-1), b.length, texts(b)[0], texts(b).at(-1)], [17, 'A3', 'C6', 17, 'C2', 'E4']);
+  for (const [clef, ps] of [['treble', t], ['bass', b]]) {
+    for (const p of ps) if (ledgerYs(noteY(p, clef)).length > 2) throw new Error(`${p.name}${p.octave} lleva más de 2 líneas`);
+  }
+});
+
+test('lectura: alteraciones solo de tecla negra (sin E♯, B♯, C♭, F♭) y todo cabe en C2–C6', () => {
+  for (const clef of ['treble', 'bass']) {
+    for (const p of readingPitches(clef, { ledger: true, accidentals: true })) {
+      if (/^(E#|B#|Cb|Fb)$/.test(p.name)) throw new Error(`no debería estar ${p.name}`);
+      if (p.midi < 36 || p.midi > 84) throw new Error(`${p.name}${p.octave} se sale del teclado`);
+    }
+  }
+  const names = texts(readingPitches('treble', { ledger: true, accidentals: true }));
+  eq([names.includes('C#6'), names.includes('Bb5'), names.includes('F#4')], [false, true, true]);
+});
+
+test('lectura: parsePitch y spellPlayed (♭ si la pedida lleva ♭, si no ♯)', () => {
+  eq(parsePitch('Bb3'), { name: 'Bb', octave: 3, midi: 58 });
+  eq(spellPlayed(63, parsePitch('Eb4')), { name: 'Eb', octave: 4, midi: 63 });
+  eq(spellPlayed(63, parsePitch('E4')).name, 'D#');
+  eq(spellPlayed(60, parsePitch('Bb4')), { name: 'C', octave: 4, midi: 60 });
+});
+
+test('lectura: describeMiss explica octava, alteración e intervalo', () => {
+  const f = parsePitch('F#4');
+  eq(describeMiss(f, spellPlayed(54, f)), 'Tocaste F♯3: la nota correcta, pero una octava más abajo.');
+  eq(describeMiss(f, spellPlayed(65, f)), 'Tocaste F4: la misma línea o espacio, pero sin el ♯.');
+  eq(describeMiss(parsePitch('A4'), spellPlayed(65, f)), 'Tocaste F4: está una 3.ª más abajo.');
+  eq(describeMiss(parsePitch('C4'), spellPlayed(67, f)), 'Tocaste G4: está una 5.ª más arriba.');
+});
+
+test('lectura: configuración inválida vuelve a sol, sin líneas ni alteraciones', () => {
+  eq(readingConfig({ clef: 'alto', ledger: 'x' }), { clef: 'treble', ledger: false, accidentals: false });
+});
+
+function makeReader(config) {
+  const bus = new EventBus();
+  const events = [];
+  for (const e of ['answer:correct', 'answer:wrong', 'note:on']) bus.on(e, (d) => events.push([e, d]));
+  const reader = new Reader({ bus, persist: false, random: () => 0 });
+  if (config) reader.setConfig(config);
+  return { reader, events };
+}
+
+test('lectura: la primera tecla es la respuesta y exige la octava exacta', () => {
+  const { reader, events } = makeReader();
+  reader.next();
+  const target = reader.current.pitch.midi;
+  reader.noteOn(target - 12); // misma nota, otra octava → error
+  reader.noteOn(target); // ya respondió: solo suena
+  eq(events.map(([e]) => e), ['note:on', 'answer:wrong', 'note:on']);
+  eq(reader.items[reader.current.id].box, 1);
+});
+
+test('lectura: acierto y "Ambas" mezcla las dos claves', () => {
+  const { reader, events } = makeReader({ clef: 'both' });
+  reader.next();
+  reader.noteOn(reader.current.pitch.midi);
+  eq(events.at(-1)[0], 'answer:correct');
+  const clefs = new Set(reader.activeIds().map((id) => id.split('|')[0]));
+  eq([...clefs], ['treble', 'bass']);
+});
+
+test('pentagrama: etiqueta propia bajo la nota y ancho mínimo fijo', () => {
+  const out = layoutStaff({ notes: [{ name: 'F#', octave: 4, label: 'F♯4' }], mode: 'sequence', labels: true, minWidth: 72 });
+  eq([out.width, out.labels.map((l) => l.text)], [72, ['F♯4']]);
 });
 
 /* ---------- Mostrar resultados ---------- */

@@ -40,7 +40,7 @@ export class StaffLayer {
     this.texts = []; // [{ canvas, x, y }]
   }
 
-  /** Mismas opciones que layoutStaff(): { notes, mode, clef, labels, colors }. */
+  /** Mismas opciones que layoutStaff(): { notes, mode, clef, labels, colors, minWidth }. */
   set(options) {
     const layout = layoutStaff(options);
     const { colors } = layout;

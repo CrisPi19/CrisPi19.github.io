@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lectura · CrisPianist</title>
+  <meta name="description" content="Una nota en el pentagrama: toca su tecla en la octava exacta.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/tiny5@5.3.0/index.css">
+  <link rel="stylesheet" href="../../css/palette.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/module.css">
+  <link rel="stylesheet" href="lectura.css">
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="back-link" href="../../">← Inicio</a>
+      <h1 class="site-title">CrisPianist <span class="subtitle">· Lectura</span></h1>
+      <button class="btn btn-sm" type="button" id="sound-toggle" aria-pressed="true">Sonido: sí</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage" id="stage">
+      <canvas id="screen" class="screen" aria-label="Pentagrama con una nota y piano: toca la tecla de esa nota en su octava"></canvas>
+    </div>
+
+    <div class="controls container" id="controls">
+      <div class="segmented" role="group" aria-label="Clave">
+        <button class="btn btn-sm" type="button" data-clef="treble">Sol</button>
+        <button class="btn btn-sm" type="button" data-clef="bass">Fa</button>
+        <button class="btn btn-sm" type="button" data-clef="both">Ambas</button>
+      </div>
+      <div class="segmented" role="group" aria-label="Qué notas">
+        <button class="btn btn-sm" type="button" data-ledger="false">Pentagrama</button>
+        <button class="btn btn-sm" type="button" data-ledger="true">+ líneas adicionales</button>
+      </div>
+      <button class="btn btn-sm" type="button" id="acc-btn" aria-pressed="false">Alteraciones: no</button>
+      <button class="btn btn-sm" type="button" id="names-btn" aria-pressed="false">Nombres: no <kbd>N</kbd></button>
+      <button class="btn btn-sm" type="button" id="listen-btn">Escuchar <kbd>Espacio</kbd></button>
+      <button class="btn btn-sm btn-primary" type="button" id="main-btn">Siguiente <kbd>Enter</kbd></button>
+    </div>
+
+    <div class="container">
+      <section class="panel feedback" id="feedback" aria-live="polite" hidden></section>
+
+      <section class="session" aria-label="Sesión actual">
+        <div class="stat panel"><span class="stat-value" id="stat-score">0/0</span><span class="stat-label">aciertos</span></div>
+        <div class="stat panel"><span class="stat-value" id="stat-streak">0</span><span class="stat-label">racha</span></div>
+        <div class="stat panel"><span class="stat-value" id="stat-avg">–</span><span class="stat-label">tiempo medio</span></div>
+      </section>
+
+      <details class="panel fold" id="help-panel">
+        <summary>Cómo funciona</summary>
+        <div class="fold-body small">
+          <p>Lee la nota de la pizarra y toca su tecla: la <strong>primera</strong> tecla que tocas
+            es tu respuesta, y tiene que ser la <strong>octava exacta</strong> (el Do central es C4;
+            las teclas C llevan su número para orientarte).</p>
+          <p>Si la nota no está en la parte del teclado que ves, la flecha de ese lado
+            <strong>brilla</strong>: cámbiate con ella o con <kbd>←</kbd> <kbd>→</kbd>.</p>
+          <p>Al acertar pasa sola a la siguiente. Al fallar, en la pizarra aparece en rojo la nota
+            que tocaste y en naranja la correcta (lo mismo en las teclas); sigue con <kbd>Enter</kbd>.</p>
+        </div>
+      </details>
+
+      <details class="panel fold" id="progress-panel">
+        <summary>Progreso</summary>
+        <div class="fold-body">
+          <p class="small muted">
+            Cada celda es una nota de una clave. El color indica su caja de repetición: las de la
+            caja 1 aparecen a menudo; las de la caja 5 ya las lees rápido y salen poco.
+            Las apagadas no entran con la configuración actual.
+          </p>
+          <div class="legend" id="legend"></div>
+          <p class="small" id="progress-summary"></p>
+          <div id="progress-maps"></div>
+          <button class="btn btn-sm" type="button" id="reset-btn">Reiniciar progreso</button>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script type="module" src="lectura.js"></script>
+</body>
+</html>

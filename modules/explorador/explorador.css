@@ -1,18 +1,6 @@
 /* Estilos propios del Explorador (lo común a los módulos está en css/module.css). */
 
-/* ---------- Controles: grupos de dos botones y listas ---------- */
-
-.controls {
-  align-items: center;
-}
-
-.segmented {
-  display: inline-flex;
-}
-
-.segmented .btn + .btn {
-  margin-left: -2px; /* bordes pegados: se leen como un solo control */
-}
+/* ---------- Controles: listas ---------- */
 
 .field {
   display: inline-flex;

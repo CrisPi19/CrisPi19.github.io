@@ -62,8 +62,19 @@ el título de las páginas y en la interfaz).
    tipo tiene una comparación sugerida (★); al cambiar de tipo con la comparación activa,
    pasa a la sugerida. Atajos: Espacio escuchar (lo que se ve), ↑↓ tipo, C comparar, V vista,
    N nombres, ← → ventanas, P pausa. Lógica en `js/explorer.js`.
-4. **Lectura**: una nota (luego acordes) en el pentagrama → el usuario toca la tecla.
-   Clave de sol primero, después clave de fa.
+4. **Lectura** (notas sueltas ✅; acordes escritos en la etapa 4): una nota en
+   el pentagrama → la **primera tecla** tocada es la respuesta, en la **octava exacta**.
+   El pentagrama va DENTRO del canvas, en una pizarra con marco de madera sobre el piano
+   (anticipo de la opción B). Opciones: clave Sol / Fa / Ambas (elegir clave lleva el
+   teclado a su ventana: sol C4–C6, fa C2–C4, ambas C3–C5); "Pentagrama" (sol D4–G5, fa
+   F2–B3: sin líneas adicionales) o "+ líneas adicionales" (hasta 2: sol A3–C6, fa C2–E4);
+   alteraciones sí/no (solo ♯/♭ de tecla negra, sin E♯/C♭…). Al acertar: nota y tecla en
+   verde y pasa sola a la siguiente (0,7 s). Al fallar: la pedida en naranja y la tocada
+   en rojo, en la pizarra (escrita al lado, con su nombre debajo) y en las teclas; panel
+   HTML con la explicación ("una 3.ª más abajo", "octava equivocada", "sin el ♯"); sigue
+   con Enter. Escuchar (Espacio) solo después de responder. Flecha que brilla = la nota
+   está en otra ventana. Cajas Leitner por clave y nota (`lectura.items`); "rápido" ≤ 2 s.
+   Lógica en `js/reading.js`; pizarra en `js/layers/reading-ui.js`.
 5. **Intervalos y escalas**: ejercicios visuales y de oído.
 6. **Práctica guiada con MusicXML**: el usuario sube un archivo MusicXML, se dibuja la
    partitura, se resalta la nota/acorde actual y se avanza solo cuando lo toca bien.
@@ -151,8 +162,9 @@ efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
 - `js/notation.js` diagrama (posiciones, líneas adicionales, segundas desplazadas a la
   derecha, alteraciones en columnas, becuadros) sin DOM y con pruebas;
   `js/layers/staff.js` (`StaffLayer`) lo pinta en cualquier canvas lógico.
-- **Hoy** va en un panel bajo la escena (`js/staff.js`), ampliado a escala **fija ×2**
-  (píxeles físicos; sin selector).
+- **Hoy**, en el Explorador, va en un panel bajo la escena (`js/staff.js`), ampliado a
+  escala **fija ×2** (píxeles físicos; sin selector). En Lectura ya va dentro de la escena
+  (pizarra de `js/layers/reading-ui.js`, a escala ×1 lógica).
 - **Objetivo final (opción B):** llevarlo DENTRO de la escena (atril o pizarra del
   conservatorio) cuando se haga el fondo. Por eso `StaffLayer` es una capa normal con
   posición `x`, `y`: bastará con agregarla a la escena. Mientras tanto, todo lo nuevo
@@ -224,6 +236,7 @@ css/                     ← estilo compartido (paleta + fuente pixel; module.cs
 js/theory.js             ← teoría pura (notas, grados, acordes, escalas, intervalos,
                            notas escritas con octava, validación)
 js/explorer.js           ← lógica del Explorador (notas por clave, comparación)
+js/reading.js            ← ejercicio de Lectura (extiende Session; sin DOM)
 js/notation.js           ← diagramación del pentagrama pixel art (sin DOM)
 js/staff.js              ← panel del pentagrama bajo la escena (usa layers/staff.js)
 js/srs.js  storage.js    ← repetición espaciada, localStorage
@@ -236,7 +249,7 @@ js/events.js             ← bus de eventos
 js/engine/               ← paleta, renderer, loop, fuente, glifos musicales, input,
                            partículas, sprites
 js/layers/               ← background, characters, piano, staff, effects, ui,
-                           explorer-ui
+                           explorer-ui, reading-ui, timer (cronómetro común)
 js/midi.js               ← entrada MIDI (módulo 2)
 data/                    ← diálogos
 assets/palette/  assets/sprites/
@@ -259,8 +272,25 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
   1. Teoría (escalas, intervalos, `spellVoicing`) + pentagrama pixel art (`notation.js`,
      `layers/staff.js`, `staff.js`).
   2. Módulo 3 Explorador (incluye "Comparar con…", p. ej. lidio vs mayor). ✅
-  3–4. Módulo 4 Lectura (sol, luego fa y acordes escritos): responde con la primera
-     tecla, octava exacta.
+  3. Módulo 4 Lectura, notas sueltas en sol y fa (primera tecla, octava exacta). ✅
+     aprobada
+  4. Módulo 4 Lectura, acordes escritos (esquema; se ajusta en la revisión):
+     - Selector "Notas | Acordes" en Lectura (misma página, misma pizarra, mismas claves).
+     - Se dibuja un acorde en bloque (redondas, `layoutStaff` modo 'chord': segundas
+       desplazadas y alteraciones en columnas) con `spellVoicing`; sin nombre del acorde:
+       se lee, no se reconoce el símbolo.
+     - Respuesta: marcar las teclas y confirmar con Enter (como en Acordes; Esc borra).
+       Correcto = exactamente esas notas en esas octavas (es lectura: no valen
+       inversiones ni duplicaciones).
+     - Al confirmar: en teclas y pizarra, verde lo acertado, rojo lo que sobró (escrito
+       al lado en la pizarra si cabe) y naranja lo que faltó; luego se muestra el nombre
+       (Fmaj7) para conectar las tres representaciones. Acierto → pasa solo; error → Enter.
+     - Opciones: tipos (tríadas mayor/m/dim/aug primero; luego sus2/sus4 y cuatríadas),
+       tónicas (naturales o todas), inversiones sí/no (por defecto no).
+     - Cada acorde se coloca en una octava donde todas sus notas quepan en la pizarra
+       (≤ 2 líneas adicionales) y en UNA ventana del teclado; si no cabe, no entra.
+     - Cajas Leitner por clave + acorde + inversión; "rápido" ≤ 2 s por nota.
+     - Lógica en `js/reading.js` (selección como en `trainer.js`), con pruebas.
   5. Módulo 5 Intervalos y escalas (visual y de oído).
   6. Módulo 6 MusicXML: en pantalla se acepta cualquier octava y la ventana sigue a la
      partitura; con MIDI, octava exacta.

@@ -1,0 +1,62 @@
+/* Estilos propios de Lectura (lo común a los módulos está en css/module.css). */
+
+#help-panel p {
+  margin: 0 0 var(--sp-2);
+}
+
+/* ---------- Mapa de progreso: una cuadrícula por clave ---------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  font-size: 14px;
+  margin-bottom: var(--sp-3);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend .cell {
+  width: 14px;
+  height: 14px;
+}
+
+.map-title {
+  margin: var(--sp-3) 0 var(--sp-2);
+  font-size: 16px;
+  color: var(--text-strong);
+}
+
+.progress-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--sp-3);
+}
+
+/* Columnas = notas naturales de grave a agudo; filas = ♯, natural, ♭. */
+.note-grid {
+  display: grid;
+  grid-template-columns: 20px repeat(var(--cols), minmax(22px, 1fr));
+  gap: 2px;
+  min-width: 460px;
+  font-size: 12px;
+}
+
+.note-grid .head {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.note-grid .cell {
+  height: 18px;
+}
+
+/* E♯, C♭… no se preguntan: hueco vacío para que las columnas sigan alineadas. */
+.note-grid .cell.is-none {
+  border-color: transparent;
+  background: none;
+}
