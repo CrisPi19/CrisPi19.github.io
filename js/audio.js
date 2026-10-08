@@ -70,13 +70,48 @@ export function playNote(midi, duration = 0.9) {
   instrument.triggerAttackRelease(toNote(midi), duration);
 }
 
-/** Toca un acorde rasgueado (de grave a agudo, con `strum` segundos entre notas). */
-export function playChord(midis, { strum = 0.05, duration = 2 } = {}) {
+/*
+ * Notas a futuro (rasgueo, escalas, "A y luego B"): se programan con temporizadores
+ * propios y no con el reloj de Tone, porque Tone no permite cancelar notas ya agendadas.
+ * Así stopPlayback() puede borrar lo pendiente: si se aprieta "Escuchar" varias veces
+ * seguidas, cada vez empieza de cero en vez de amontonar reproducciones que siguen
+ * sonando después.
+ */
+const pending = new Set();
+
+function later(seconds, midi, duration) {
+  if (seconds <= 0) {
+    instrument.triggerAttackRelease(toNote(midi), duration);
+    return;
+  }
+  const id = setTimeout(() => {
+    pending.delete(id);
+    if (!muted) instrument.triggerAttackRelease(toNote(midi), duration);
+  }, seconds * 1000);
+  pending.add(id);
+}
+
+/** Cancela las notas programadas y apaga las que están sonando. */
+export function stopPlayback() {
+  for (const id of pending) clearTimeout(id);
+  pending.clear();
+  if (instrument) instrument.releaseAll();
+}
+
+/**
+ * Toca un acorde rasgueado (de grave a agudo, con `strum` segundos entre notas).
+ * `delay`: segundos de espera antes de empezar (para encadenar, p. ej. al comparar).
+ */
+export function playChord(midis, { strum = 0.05, duration = 2, delay = 0 } = {}) {
   if (muted || !midis.length || !ensureAudio()) return;
-  const now = Tone.now();
-  [...midis].sort((a, b) => a - b).forEach((midi, i) => {
-    instrument.triggerAttackRelease(toNote(midi), duration, now + i * strum);
-  });
+  [...midis].sort((a, b) => a - b).forEach((midi, i) => later(delay + i * strum, midi, duration));
+}
+
+/** Toca notas una tras otra, en el orden dado (una escala). Devuelve cuánto dura en segundos. */
+export function playSequence(midis, { step = 0.3, duration = 0.6, delay = 0 } = {}) {
+  if (muted || !midis.length || !ensureAudio()) return 0;
+  midis.forEach((midi, i) => later(delay + i * step, midi, duration));
+  return midis.length * step;
 }
 
 export function isMuted() {
@@ -86,5 +121,5 @@ export function isMuted() {
 export function setMuted(value) {
   muted = value;
   save('muted', muted);
-  if (muted && instrument) instrument.releaseAll();
+  if (muted) stopPlayback();
 }

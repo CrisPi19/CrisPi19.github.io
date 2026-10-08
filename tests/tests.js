@@ -13,6 +13,10 @@ import {
   clefFor, noteY, ledgerYs, layoutStaff, STAFF_TOP, STAFF_BOTTOM,
 } from '../js/notation.js';
 import { GLYPHS } from '../js/engine/music-glyphs.js';
+import {
+  itemNotes, itemName, compareNotes, describeDifferences, stepType, STATUS, SUGGESTED_COMPARE,
+  CLEF_RANGE,
+} from '../js/explorer.js';
 import { grade, pickNext, createItem, MAX_BOX } from '../js/srs.js';
 import { COLORS, C } from '../js/engine/palette.js';
 import { missingChars, measure } from '../js/engine/font.js';
@@ -323,6 +327,65 @@ test('glifos: el ancla cae dentro de cada glifo', () => {
   for (const [name, g] of Object.entries(GLYPHS)) {
     eq([name, g.ay >= 0 && g.ay < g.h, g.runs.length > 0], [name, true, true]);
   }
+});
+
+/* ---------- Explorador ---------- */
+
+const names = (notes) => notes.map((x) => `${x.name}${x.octave}`);
+
+test('explorador: en sol la tónica va en la octava 4; en fa, en la 3', () => {
+  eq(names(itemNotes({ kind: 'chord', root: 'F', type: 'maj7' }, 'treble')), ['F4', 'A4', 'C5', 'E5']);
+  eq(names(itemNotes({ kind: 'chord', root: 'F', type: 'maj7' }, 'bass')), ['F3', 'A3', 'C4', 'E4']);
+});
+
+test('explorador: todo cabe en la ventana de su clave (también B9 y la escala de B)', () => {
+  for (const clef of ['treble', 'bass']) {
+    const from = CLEF_RANGE[clef];
+    for (const item of [{ kind: 'chord', root: 'B', type: 'dom9' }, { kind: 'scale', root: 'B', type: 'major' }]) {
+      const ms = itemNotes(item, clef).map((x) => x.midi);
+      eq([clef, item.type, Math.min(...ms) >= from && Math.max(...ms) <= from + 24], [clef, item.type, true]);
+    }
+  }
+});
+
+test('explorador: nombres de ítems', () => {
+  eq([itemName({ kind: 'chord', root: 'Bb', type: 'm7' }), itemName({ kind: 'scale', root: 'D', type: 'lydian' })],
+    ['B♭m7', 'D Lidio']);
+});
+
+test('comparar D lidio con D mayor: solo cambia el 4.º grado (G♯ ↔ G)', () => {
+  const a = itemNotes({ kind: 'scale', root: 'D', type: 'lydian' });
+  const b = itemNotes({ kind: 'scale', root: 'D', type: 'major' });
+  const cmp = compareNotes(a, b);
+  eq(a.filter((x, i) => cmp.a[i] === STATUS.ONLY_A).map((x) => x.name), ['G#']);
+  eq(b.filter((x, i) => cmp.b[i] === STATUS.ONLY_B).map((x) => x.name), ['G']);
+  eq([cmp.a[0], cmp.a[7]], [STATUS.ROOT, STATUS.ROOT]);
+  const d = describeDifferences(a, b, cmp);
+  eq([d.swaps.length, d.swaps[0].a.degree, d.swaps[0].b.degree, d.onlyA.length, d.onlyB.length], [1, '#4', '4', 0, 0]);
+});
+
+test('comparar pentatónica mayor con mayor: a la pentatónica le faltan 4 y 7', () => {
+  const a = itemNotes({ kind: 'scale', root: 'C', type: 'pentaMajor' });
+  const b = itemNotes({ kind: 'scale', root: 'C', type: 'major' });
+  const d = describeDifferences(a, b);
+  eq([d.swaps.length, d.onlyA.length, d.onlyB.map((x) => x.degree)], [0, 0, ['4', '7']]);
+});
+
+test('comparar C9 con C7: solo C9 tiene la 9 (D)', () => {
+  const d = describeDifferences(itemNotes({ kind: 'chord', root: 'C', type: 'dom9' }), itemNotes({ kind: 'chord', root: 'C', type: 'dom7' }));
+  eq([d.swaps.length, d.onlyA.map((x) => x.name), d.onlyB.length], [0, ['D'], 0]);
+});
+
+test('comparación sugerida: existe para cada tipo y nunca es el mismo tipo', () => {
+  for (const [kind, map] of Object.entries(SUGGESTED_COMPARE)) {
+    for (const id of Object.keys(kind === 'scale' ? SCALE_TYPES : CHORD_TYPES)) {
+      eq([kind, id, Boolean(map[id]) && map[id] !== id], [kind, id, true]);
+    }
+  }
+});
+
+test('stepType recorre los tipos en orden y da la vuelta', () => {
+  eq([stepType('scale', 'major', -1), stepType('scale', 'blues', 1), stepType('chord', 'maj', 1)], ['blues', 'major', 'm']);
 });
 
 /* ---------- Repetición espaciada ---------- */

@@ -46,8 +46,16 @@ const KEYS_RIGHT = KEYS_X + 15 * WHITE_W; // 310
 const ARROW_Y = 166;
 const ARROW_X = { [-1]: 3, 1: 313 };
 
-/** Marcas posibles de una tecla. */
-export const MARK = { NONE: 0, CORRECT: 1, WRONG: 2, MISSING: 3 };
+/**
+ * Marcas posibles de una tecla.
+ *   CORRECT, WRONG, MISSING: tras responder un ejercicio (verde, rojo, naranja).
+ *   TONE, ROOT, OTHER, BOTH: para mostrar sin juzgar (Explorador): nota de lo explorado
+ *   (azul), tónica (dorado, igual que en el pentagrama), nota solo de lo comparado (cian)
+ *   y nota de los dos (tecla partida: mitad azul, mitad cian).
+ */
+export const MARK = {
+  NONE: 0, CORRECT: 1, WRONG: 2, MISSING: 3, TONE: 4, ROOT: 5, OTHER: 6, BOTH: 7,
+};
 
 /* ---------------- Geometría (pura, se puede probar) ---------------- */
 
@@ -133,6 +141,10 @@ const WHITE_STYLE = {
   [MARK.CORRECT]: [C.OK_1, C.OK_0, C.FX_WHITE],
   [MARK.WRONG]: [C.BAD_1, C.BAD_0, C.FX_WHITE],
   [MARK.MISSING]: [C.MISS, C.WOOD_3, C.FX_WHITE],
+  [MARK.TONE]: [C.NIGHT_3, C.NIGHT_2, C.IVORY_2],
+  [MARK.ROOT]: [C.FX_GOLD, C.WOOD_3, C.FX_WHITE],
+  [MARK.OTHER]: [C.FX_CYAN, C.NIGHT_3, C.FX_WHITE],
+  [MARK.BOTH]: [C.NIGHT_3, C.NIGHT_2, C.IVORY_2], // mitad izquierda; la derecha es OTHER
 };
 const BLACK_STYLE = {
   normal: [C.KEY_BLACK, C.KEY_BLACK_HI],
@@ -140,7 +152,15 @@ const BLACK_STYLE = {
   [MARK.CORRECT]: [C.OK_0, C.OK_1],
   [MARK.WRONG]: [C.BAD_0, C.BAD_1],
   [MARK.MISSING]: [C.MISS, C.FX_WHITE],
+  [MARK.TONE]: [C.NIGHT_2, C.NIGHT_3],
+  [MARK.ROOT]: [C.FX_GOLD, C.FX_WHITE],
+  [MARK.OTHER]: [C.FX_CYAN, C.FX_WHITE],
+  // En negras la mitad azul usa el azul claro, para que el número se lea en tinta en las dos mitades.
+  [MARK.BOTH]: [C.NIGHT_3, C.FX_WHITE],
 };
+
+/** Marcas de color claro: sobre ellas el texto va oscuro (también en las negras). */
+const LIGHT_MARKS = new Set([MARK.MISSING, MARK.ROOT, MARK.OTHER, MARK.BOTH]);
 
 /* ---------------- Flechas ---------------- */
 
@@ -284,7 +304,7 @@ export class PianoLayer {
   /* ----- Sprites ----- */
 
   labelColor(black, mark) {
-    return black && mark !== MARK.MISSING ? C.IVORY_2 : C.INK;
+    return black && !LIGHT_MARKS.has(mark) ? C.IVORY_2 : C.INK;
   }
 
   label(text, color) {
@@ -377,6 +397,14 @@ export class PianoLayer {
     ctx.fillRect(x + 1, y + dy, 1, 51);
     ctx.fillStyle = PAL[style[1]];
     ctx.fillRect(x + 1, y + 51 + dy, WHITE_W - 1, 4 - dy);
+    if (mark === MARK.BOTH) {
+      // Tecla partida: la mitad derecha con los colores de lo comparado.
+      const other = WHITE_STYLE[MARK.OTHER];
+      ctx.fillStyle = PAL[other[0]];
+      ctx.fillRect(x + 10, y + dy, WHITE_W - 10, 51);
+      ctx.fillStyle = PAL[other[1]];
+      ctx.fillRect(x + 10, y + 51 + dy, WHITE_W - 10, 4 - dy);
+    }
 
     // Etiquetas por debajo del largo de las negras (34 px) para que nunca queden tapadas.
     const deg = this.degreeSprites[s];
@@ -405,13 +433,17 @@ export class PianoLayer {
     ctx.fillRect(x, y, BLACK_W, BLACK_H);
     ctx.fillStyle = PAL[style[0]];
     ctx.fillRect(x + 1, y, BLACK_W - 2, BLACK_H - 1);
+    if (mark === MARK.BOTH) {
+      ctx.fillStyle = PAL[BLACK_STYLE[MARK.OTHER][0]];
+      ctx.fillRect(x + 6, y, BLACK_W - 7, BLACK_H - 1);
+    }
     ctx.fillStyle = PAL[style[1]];
     ctx.fillRect(x + 2, y, 1, 26); // brillo lateral
     ctx.fillRect(x + 2, y + 26, BLACK_W - 4, 1); // inicio del bisel frontal
 
     if (this.showNames) {
       const n = this.nameSprites[s];
-      const dark = mark === MARK.MISSING;
+      const dark = LIGHT_MARKS.has(mark);
       const letter = dark ? n.letterDark : n.letterLight;
       const sharp = dark ? n.sharpDark : n.sharpLight;
       ctx.drawImage(letter, x + ((BLACK_W - letter.width) >> 1), y + 3 - CAP_TOP);

@@ -15,7 +15,7 @@ import {
 } from '../../js/theory.js';
 import { MAX_BOX } from '../../js/srs.js';
 import { load, save } from '../../js/storage.js';
-import { playNote, playChord } from '../../js/audio.js';
+import { playNote, playChord, stopPlayback } from '../../js/audio.js';
 import { createStage, bindShortcuts, onButton, bindSoundToggle } from '../../js/shell.js';
 import { computeMarks, KB_FROM } from '../../js/layers/piano.js';
 import { UiLayer } from '../../js/layers/ui.js';
@@ -267,7 +267,9 @@ function mainAction() {
 }
 
 function listenAction() {
-  if (!trainer.paused && trainer.current) playChord(referenceVoicing(trainer.current));
+  if (trainer.paused || !trainer.current) return;
+  stopPlayback(); // apretar varias veces no amontona acordes
+  playChord(referenceVoicing(trainer.current));
 }
 
 onButton(els.mainBtn, mainAction);

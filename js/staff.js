@@ -30,9 +30,8 @@ export class Staff {
     this.canvas.style.margin = '0 auto';
     this.ctx = this.canvas.getContext('2d');
     container.appendChild(this.canvas);
-    // Al cambiar el ancho del panel se recalcula el factor (ResizeObserver no está en todos
-    // los navegadores viejos; sin él, basta con el tamaño inicial).
-    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => this.present()).observe(container);
+    // Al cambiar el ancho de la ventana se recalcula el factor (solo baja de ×2 en pantallas angostas).
+    window.addEventListener('resize', () => this.present());
   }
 
   /** Mismas opciones que layoutStaff(): { notes, mode, clef, labels, colors }. */
@@ -50,8 +49,9 @@ export class Staff {
     const { width, height } = this.layer;
     if (!width) return;
     const dpr = window.devicePixelRatio || 1;
-    const style = getComputedStyle(this.container);
-    const avail = this.container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    // Se mide contra el ancho de la PÁGINA, no del panel: un panel que se ajusta a su
+    // contenido mediría el canvas viejo y nunca crecería.
+    const avail = document.documentElement.clientWidth - 48;
     const scale = Math.max(1, Math.min(SCALE, Math.floor((avail * dpr) / width)));
     if (this.canvas.width !== width * scale || this.canvas.height !== height * scale) {
       this.canvas.width = width * scale;

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Explorador · CrisPianist</title>
+  <meta name="description" content="Elige un acorde o una escala: teclas con su función, pentagrama y sonido a la vez.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/tiny5@5.3.0/index.css">
+  <link rel="stylesheet" href="../../css/palette.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/module.css">
+  <link rel="stylesheet" href="explorador.css">
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="back-link" href="../../">← Inicio</a>
+      <h1 class="site-title">CrisPianist <span class="subtitle">· Explorador</span></h1>
+      <button class="btn btn-sm" type="button" id="sound-toggle" aria-pressed="true">Sonido: sí</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage" id="stage">
+      <canvas id="screen" class="screen" aria-label="Piano: las teclas marcadas son las notas de lo que exploras; haz clic para oír cada una"></canvas>
+    </div>
+
+    <div class="controls container" id="controls">
+      <div class="segmented" role="group" aria-label="Qué explorar">
+        <button class="btn btn-sm" type="button" data-kind="chord">Acorde</button>
+        <button class="btn btn-sm" type="button" data-kind="scale">Escala</button>
+      </div>
+      <label class="field">Tónica <select id="root-select"></select></label>
+      <label class="field"><span id="type-label">Mi escala</span> <kbd>↑↓</kbd> <select id="type-select"></select></label>
+      <label class="field">Comparar con <kbd>C</kbd> <select id="compare-select"></select></label>
+      <button class="btn btn-sm" type="button" id="view-btn" hidden>Ambas <kbd>V</kbd></button>
+      <div class="segmented" role="group" aria-label="Clave">
+        <button class="btn btn-sm" type="button" data-clef="treble">Sol</button>
+        <button class="btn btn-sm" type="button" data-clef="bass">Fa</button>
+      </div>
+      <button class="btn btn-sm" type="button" id="names-btn" aria-pressed="false">Nombres: no <kbd>N</kbd></button>
+      <button class="btn btn-sm btn-primary" type="button" id="listen-btn">Escuchar <kbd>Espacio</kbd></button>
+    </div>
+
+    <div class="container">
+      <div class="staff-row" id="staff-row">
+        <section class="panel staff-card" id="card-a">
+          <p class="staff-caption" id="caption-a"></p>
+          <div class="staff" id="staff-a"></div>
+        </section>
+        <section class="panel staff-card" id="card-b" hidden>
+          <p class="staff-caption" id="caption-b"></p>
+          <div class="staff" id="staff-b"></div>
+        </section>
+      </div>
+
+      <section class="panel compare-info" id="compare-info" aria-live="polite" hidden></section>
+    </div>
+  </main>
+
+  <script type="module" src="explorador.js"></script>
+</body>
+</html>

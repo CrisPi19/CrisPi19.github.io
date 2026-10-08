@@ -35,7 +35,8 @@ el título de las páginas y en la interfaz).
 - Repetición espaciada Leitner (cajas 1–5); "rápido" = ≤ 2 s por nota del acorde.
 - **Solo modo oscuro** (la escena es un conservatorio de noche).
 - En celular se acepta el canvas a escala ×1 (teclas pequeñas) por ahora.
-- Accesibilidad: atajos de teclado (Enter, Esc, Espacio, N, ← →); las teclas del canvas no
+- Accesibilidad: atajos de teclado (Enter, Esc, Espacio, N, ← →; en el Explorador también
+  ↑↓, C y V); las teclas del canvas no
   son elementos accesibles para lectores de pantalla.
 - **Pausa** con la tecla P (o Pausa): no tiene botón ni aparece en pantalla. Al pausar se
   detiene todo (escena, cronómetro, entrada de notas y botones), se oculta el acorde y el
@@ -48,8 +49,19 @@ el título de las páginas y en la interfaz).
 ## Módulos (en orden de construcción)
 1. **Entrenador de acordes** ✅ (con el sistema pixel art).
 2. **Conexión MIDI**: detectar el teclado y usar sus notas como entrada en todos los módulos.
-3. **Explorador**: eliges tónica y tipo de acorde o escala; se muestran a la vez las teclas
-   resaltadas con su función (1, 3, 5, b7…), el pentagrama y el sonido.
+3. **Explorador** ✅: eliges acorde o escala, tónica y "Mi escala"/"Mi acorde"; se
+   muestran a la vez las teclas con su función (1, 3, 5, ♭7…), el pentagrama (grados en
+   romanos en las escalas) y el sonido, con las MISMAS notas. Clave Sol (tónica en la
+   octava 4, ventana C4–C6) o Fa (octava 3, ventana C3–C5). "Comparar con…" (misma
+   tónica, mismo tipo de ítem): lo explorado en azul, lo comparado en cian, tecla partida
+   (mitad azul, mitad cian) si está en los dos, tónica dorada. Solo lo explorado lleva
+   números en las teclas y grados en el pentagrama; lo comparado se reconoce por el
+   color. Debajo, un texto con las diferencias (lidio ♯4 ↔ mayor 4). Botón de vista
+   (solo al comparar, atajo V): "Ambas" → mi escala/acorde (azul) → la comparada (cian)
+   → "Ambas"; teclado, pentagrama y sonido muestran solo lo elegido. Cada
+   tipo tiene una comparación sugerida (★); al cambiar de tipo con la comparación activa,
+   pasa a la sugerida. Atajos: Espacio escuchar (lo que se ve), ↑↓ tipo, C comparar, V vista,
+   N nombres, ← → ventanas, P pausa. Lógica en `js/explorer.js`.
 4. **Lectura**: una nota (luego acordes) en el pentagrama → el usuario toca la tecla.
    Clave de sol primero, después clave de fa.
 5. **Intervalos y escalas**: ejercicios visuales y de oído.
@@ -104,7 +116,9 @@ efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
 - El teclado no conoce los ejercicios: cada módulo le dice qué mostrar con
   `setSelected()`, `setMarks()` y `clearMarks()`.
 - Estados: normal, seleccionada (baja 1 px), acierto (verde), error (rojo); en un error,
-  las notas que faltaron se marcan en naranja.
+  las notas que faltaron se marcan en naranja. Para mostrar sin juzgar (Explorador):
+  nota de lo explorado (azul), tónica (dorado), solo de lo comparado (cian) y de los dos
+  (tecla partida azul/cian).
 - **Ninguna animación ni efecto puede revelar la respuesta antes de confirmar.**
 - Clics convertidos a coordenadas lógicas; las negras se prueban antes que las blancas.
 - `trainer.noteOn(midi, source)` es la única puerta de entrada de notas (la usará el MIDI).
@@ -115,7 +129,9 @@ efectos nunca compiten con su legibilidad (el fondo usa tonos medios).
   paleta claro → brillante → oscuro. Posiciones en el grid. Notas musicales al acertar.
 - Animaciones con parámetros cuantizados (se leen a 8–12 fps aunque el bucle vaya a 60).
 - Timestep fijo 60 Hz + `requestAnimationFrame`. **Cero asignaciones dentro del bucle.**
-- El sonido se dispara en el evento del clic, nunca desde el bucle.
+- El sonido se dispara en el evento del clic, nunca desde el bucle. Las notas a futuro
+  (rasgueo, escalas, "A y luego B") usan temporizadores cancelables: cada "Escuchar"
+  llama a `stopPlayback()` y empieza de cero (apretar seguido no amontona sonidos).
 - Las muestras de piano se precargan al abrir la página (si no, los primeros segundos
   suena el sintetizador de respaldo); el audio se enciende en el primer gesto.
 
@@ -203,9 +219,11 @@ Dos perros blancos idénticos, diferenciados solo por la nariz (uno negra, otro 
 ## Estructura
 ```
 index.html               ← menú de módulos
-css/                     ← estilo compartido (paleta + fuente pixel)
+css/                     ← estilo compartido (paleta + fuente pixel; module.css: lo común
+                           de los módulos con piano)
 js/theory.js             ← teoría pura (notas, grados, acordes, escalas, intervalos,
                            notas escritas con octava, validación)
+js/explorer.js           ← lógica del Explorador (notas por clave, comparación)
 js/notation.js           ← diagramación del pentagrama pixel art (sin DOM)
 js/staff.js              ← panel del pentagrama bajo la escena (usa layers/staff.js)
 js/srs.js  storage.js    ← repetición espaciada, localStorage
@@ -217,7 +235,8 @@ js/shell.js              ← armazón común de módulos: canvas, clics, flechas
 js/events.js             ← bus de eventos
 js/engine/               ← paleta, renderer, loop, fuente, glifos musicales, input,
                            partículas, sprites
-js/layers/               ← background, characters, piano, staff, effects, ui
+js/layers/               ← background, characters, piano, staff, effects, ui,
+                           explorer-ui
 js/midi.js               ← entrada MIDI (módulo 2)
 data/                    ← diálogos
 assets/palette/  assets/sprites/
@@ -239,7 +258,7 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
   0. Piezas comunes: `shell.js`, `session.js`, API del teclado + 3 ventanas, `history.js`.
   1. Teoría (escalas, intervalos, `spellVoicing`) + pentagrama pixel art (`notation.js`,
      `layers/staff.js`, `staff.js`).
-  2. Módulo 3 Explorador (incluye "Comparar con…", p. ej. lidio vs mayor).
+  2. Módulo 3 Explorador (incluye "Comparar con…", p. ej. lidio vs mayor). ✅
   3–4. Módulo 4 Lectura (sol, luego fa y acordes escritos): responde con la primera
      tecla, octava exacta.
   5. Módulo 5 Intervalos y escalas (visual y de oído).

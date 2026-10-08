@@ -1,0 +1,109 @@
+/* Estilos propios del Explorador (lo común a los módulos está en css/module.css). */
+
+/* ---------- Controles: grupos de dos botones y listas ---------- */
+
+.controls {
+  align-items: center;
+}
+
+.segmented {
+  display: inline-flex;
+}
+
+.segmented .btn + .btn {
+  margin-left: -2px; /* bordes pegados: se leen como un solo control */
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.field select {
+  min-height: 32px;
+  padding: 0 var(--sp-2);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--stone-1);
+  color: var(--ivory-2);
+  font: inherit;
+  font-size: 14px;
+  box-shadow: inset 2px 2px 0 var(--stone-2);
+}
+
+.field select:focus-visible {
+  outline: 2px solid var(--fx-gold);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .controls kbd { display: none; }
+}
+
+/* ---------- Pentagramas ---------- */
+
+.staff-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.staff-card {
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+}
+
+.staff-caption {
+  margin: 0 0 var(--sp-1);
+  font-size: 14px;
+  color: var(--text-strong);
+}
+
+/* ---------- Comparación ---------- */
+
+.compare-info {
+  margin-bottom: var(--sp-4);
+  font-size: 14px;
+}
+
+.compare-info p {
+  margin: 0 0 var(--sp-2);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  color: var(--text-muted);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ink);
+}
+
+.swatch.root { background: var(--fx-gold); }
+.swatch.a { background: var(--night-3); }
+.swatch.b { background: var(--fx-cyan); }
+.swatch.both { background: linear-gradient(90deg, var(--night-3) 50%, var(--fx-cyan) 50%); }
+
+.tag-a { color: var(--night-3); }
+
+/* Botón de vista: el texto toma el color de lo que muestra. */
+#view-btn { min-width: 110px; }
+#view-btn[data-view="a"] { color: var(--night-3); }
+#view-btn[data-view="b"] { color: var(--fx-cyan); }
+.tag-b { color: var(--fx-cyan); }
