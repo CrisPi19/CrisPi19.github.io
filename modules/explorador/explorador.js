@@ -47,9 +47,10 @@ const els = {
   compareInfo: $('compare-info'),
 };
 
-/* ---------------- Estado (se recuerda entre visitas) ---------------- */
+/* ---------------- Estado ---------------- */
 
-const DEFAULT_STATE = { kind: 'scale', root: 'D', type: 'lydian', compare: 'major', clef: 'treble' };
+/** Siempre se abre en C mayor sin comparar; de la visita anterior solo se recuerda la clave. */
+const DEFAULT_STATE = { kind: 'scale', root: 'C', type: 'major', compare: null, clef: 'treble' };
 
 function sanitize(s) {
   const st = { ...DEFAULT_STATE, ...(s && typeof s === 'object' ? s : {}) };
@@ -62,7 +63,7 @@ function sanitize(s) {
   return st;
 }
 
-let state = sanitize(load('explorador.state', DEFAULT_STATE));
+let state = sanitize({ ...DEFAULT_STATE, clef: load('explorador.state', DEFAULT_STATE)?.clef });
 let paused = false;
 
 /* ---------------- Piezas ---------------- */
