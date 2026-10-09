@@ -28,6 +28,7 @@ const SLOT = 20; // ancho por nota en modo secuencia (cabe el grado más ancho, 
 const SEQ_ACC = 8; // espacio reservado para la alteración en cada nota de una secuencia
 const MIN_CHORD_WIDTH = 56;
 const RIGHT_PAD = 6;
+const COLUMN_GAP = 4; // entre dos columnas de acorde (de línea adicional a alteración)
 
 /** Paso de letra de la línea de abajo de cada clave: E4 en sol, G2 en fa. */
 const BOTTOM_STEP = { treble: letterSteps({ name: 'E', octave: 4 }), bass: letterSteps({ name: 'G', octave: 2 }) };
@@ -59,7 +60,8 @@ function accidentalOf({ name }) {
 
 /**
  * @param notes   notas escritas [{ name, octave, midi?, degree? }]
- * @param mode    'chord' (bloque) o 'sequence' (una tras otra)
+ * @param mode    'chord' (bloque; con `column` en las notas, varios bloques seguidos)
+ *                o 'sequence' (una tras otra)
  * @param clef    'treble' | 'bass' (por defecto, según la altura media)
  * @param labels  true: texto bajo cada nota (solo en 'sequence'): su `label` si la trae
  *                (p. ej. 'F♯4' en Lectura) o su grado en números romanos
@@ -95,11 +97,48 @@ export function layoutStaff({
   return out;
 }
 
+/**
+ * Acorde en bloque. Las notas pueden traer `column` (0, 1…): cada columna es un acorde
+ * aparte, de izquierda a derecha (en Lectura, la 1 son las notas que sobraron, escritas al
+ * lado). Como en un compás, una alteración sigue valiendo en las columnas siguientes: si
+ * después vuelve la misma letra natural en la misma octava, lleva becuadro.
+ */
 function layoutChord(out, notes, clef) {
+  const columns = [];
+  notes.forEach((p, index) => {
+    const c = p.column ?? 0;
+    (columns[c] ??= []).push({ p, index });
+  });
+  const altered = new Map(); // 'F4' → alteración vigente
+  let x = NOTES_X;
+  let width = MIN_CHORD_WIDTH;
+  for (const group of columns) {
+    if (!group) continue;
+    const accs = group.map(({ p }) => {
+      const key = p.name[0] + p.octave;
+      const acc = accidentalOf(p);
+      if (acc) return acc;
+      return altered.has(key) ? 'n' : null;
+    });
+    group.forEach(({ p }, i) => {
+      const key = p.name[0] + p.octave;
+      if (accs[i] && accs[i] !== 'n') altered.set(key, accs[i]);
+    });
+    // Los becuadros cancelan después de dibujarse (no antes: dos notas iguales en la columna).
+    group.forEach(({ p }, i) => { if (accs[i] === 'n') altered.delete(p.name[0] + p.octave); });
+    const right = layoutChordColumn(out, group, accs, clef, x);
+    width = Math.max(width, right + RIGHT_PAD);
+    x = right + COLUMN_GAP;
+  }
+  out.width = width;
+}
+
+/** Una columna de acorde que empieza en `x`; devuelve su borde derecho (incluye las líneas adicionales). */
+function layoutChordColumn(out, group, accs, clef, x) {
   const head = GLYPHS.head;
   // De grave a agudo (por altura escrita; a igual letra, por sonido).
-  const sorted = notes
-    .map((p, index) => ({ p, index, step: letterSteps(p), y: noteY(p, clef) }))
+  const sorted = group
+    .map(({ p, index }, i) => ({ p, index, acc: accs[i], step: letterSteps(p), y: noteY(p, clef) }))
     .sort((a, b) => a.step - b.step || (a.p.midi ?? 0) - (b.p.midi ?? 0));
 
   // Segundas: dos cabezas a 1 paso no caben una sobre otra; la de arriba va a la derecha
@@ -115,7 +154,7 @@ function layoutChord(out, notes, clef) {
   const placed = [];
   for (let i = sorted.length - 1; i >= 0; i--) {
     const n = sorted[i];
-    const glyph = accidentalGlyph(accidentalOf(n.p));
+    const glyph = accidentalGlyph(n.acc);
     if (!glyph) continue;
     const top = n.y - glyph.ay;
     const bottom = top + glyph.h - 1;
@@ -127,7 +166,7 @@ function layoutChord(out, notes, clef) {
   }
   const accWidth = columns.reduce((sum, c) => sum + c.w + 1, 0);
 
-  const headX = NOTES_X + accWidth + LEDGER_OVER;
+  const headX = x + accWidth + LEDGER_OVER;
   const anyDisplaced = sorted.some((n) => n.displaced);
   const headsWidth = head.w * (anyDisplaced ? 2 : 1);
 
@@ -153,7 +192,7 @@ function layoutChord(out, notes, clef) {
     out.ledgers.push({ x: headX - LEDGER_OVER, y, w: headsWidth + LEDGER_OVER * 2 });
   }
 
-  out.width = Math.max(MIN_CHORD_WIDTH, headX + headsWidth + LEDGER_OVER + RIGHT_PAD);
+  return headX + headsWidth + LEDGER_OVER;
 }
 
 function layoutSequence(out, notes, clef, labels) {

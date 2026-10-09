@@ -177,6 +177,17 @@ export function inversionName(index) {
 }
 
 /**
+ * Nombre del acorde con su bajo: ('F', 'maj7', 1) → "Fmaj7/A"; con 0, solo "Fmaj7".
+ * Si el símbolo ya lleva "/" (m6/9), se agrupa con paréntesis: (Am6/9)/C.
+ */
+export function slashChordName(root, typeId, inversion = 0) {
+  const name = chordName(root, typeId);
+  if (!inversion) return name;
+  const head = getType(typeId).symbol.includes('/') ? `(${name})` : name;
+  return `${head}/${displayNote(spellChord(root, typeId)[inversion])}`;
+}
+
+/**
  * Compara lo que tocó el usuario con el acorde pedido.
  *
  * Se aceptan cualquier octava, duplicaciones e inversiones: lo que importa es
@@ -214,13 +225,7 @@ export function analyzeAnswer(midiNotes, root, typeId) {
   }
 
   const inversion = correct ? bass.index : null;
-  let slashName = null;
-  if (correct && inversion > 0) {
-    // Si el símbolo ya lleva "/" (m6/9), se agrupa con paréntesis: (Am6/9)/C.
-    const name = chordName(root, typeId);
-    const head = type.symbol.includes('/') ? `(${name})` : name;
-    slashName = `${head}/${displayNote(spellChord(root, typeId)[inversion])}`;
-  }
+  const slashName = correct && inversion > 0 ? slashChordName(root, typeId, inversion) : null;
 
   return { correct, missing, extra, degreeOf, bass, inversion, slashName };
 }

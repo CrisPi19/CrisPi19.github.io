@@ -7,7 +7,7 @@ import {
   rootPositionVoicing, notePc, displayNote, parseDegree, CHORD_TYPES, ROOTS,
   SCALE_TYPES, INTERVALS, spellScale, scalePitchClasses, pitchMidi, pitchFromMidi, pitchAbove,
   pitchBelow, intervalBetween, intervalSemitones, spellVoicing, spellScaleVoicing, fitToRange,
-  romanDegree,
+  romanDegree, slashChordName, NATURAL_ROOTS,
 } from '../js/theory.js';
 import {
   clefFor, noteY, ledgerYs, layoutStaff, STAFF_TOP, STAFF_BOTTOM,
@@ -29,6 +29,8 @@ import { EventBus } from '../js/events.js';
 import { Trainer } from '../js/trainer.js';
 import {
   Reader, readingPitches, parsePitch, spellPlayed, describeMiss, sanitizeConfig as readingConfig,
+  chordReadingVoicing, chordPlacements, compareChordReading, spellExtras, chordIds, parseId,
+  READING_CHORD_TYPES, pitchText,
 } from '../js/reading.js';
 
 const results = [];
@@ -716,13 +718,16 @@ test('lectura: describeMiss explica octava, alteración e intervalo', () => {
 });
 
 test('lectura: configuración inválida vuelve a sol, sin líneas ni alteraciones', () => {
-  eq(readingConfig({ clef: 'alto', ledger: 'x' }), { clef: 'treble', ledger: false, accidentals: false });
+  eq(readingConfig({ clef: 'alto', ledger: 'x', chordTypes: ['dom9', 'x'] }), {
+    mode: 'notes', clef: 'treble', ledger: false, accidentals: false,
+    chordTypes: ['maj', 'm', 'dim', 'aug'], chordRoots: 'naturals', inversions: false,
+  });
 });
 
 function makeReader(config) {
   const bus = new EventBus();
   const events = [];
-  for (const e of ['answer:correct', 'answer:wrong', 'note:on']) bus.on(e, (d) => events.push([e, d]));
+  for (const e of ['answer:correct', 'answer:wrong', 'answer:empty', 'note:on', 'selection:change']) bus.on(e, (d) => events.push([e, d]));
   const reader = new Reader({ bus, persist: false, random: () => 0 });
   if (config) reader.setConfig(config);
   return { reader, events };
@@ -750,6 +755,129 @@ test('lectura: acierto y "Ambas" mezcla las dos claves', () => {
 test('pentagrama: etiqueta propia bajo la nota y ancho mínimo fijo', () => {
   const out = layoutStaff({ notes: [{ name: 'F#', octave: 4, label: 'F♯4' }], mode: 'sequence', labels: true, minWidth: 72 });
   eq([out.width, out.labels.map((l) => l.text)], [72, ['F♯4']]);
+});
+
+/* ---------- Lectura de acordes escritos ---------- */
+
+const chordText = (pitches) => pitches.map(pitchText).join(' ');
+
+test('slashChordName: Fmaj7/A, C sin barra y (Am6/9)/C', () => {
+  eq([slashChordName('F', 'maj7', 1), slashChordName('C', 'maj', 0), slashChordName('A', 'm69', 1)],
+    ['Fmaj7/A', 'C', '(Am6/9)/C']);
+});
+
+test('lectura acordes: inversiones en posición cerrada (las de abajo suben una octava)', () => {
+  eq(chordText(chordReadingVoicing('F', 'maj7', 0, 3)), 'F3 A3 C4 E4');
+  eq(chordText(chordReadingVoicing('F', 'maj7', 1, 3)), 'A3 C4 E4 F4');
+  eq(chordText(chordReadingVoicing('Bb', 'm7', 3, 3)), 'Ab4 Bb4 Db5 F5');
+});
+
+test('lectura acordes: C mayor sin líneas adicionales va en C5 (sol) y en C3 (fa)', () => {
+  eq(chordPlacements('treble', 'C', 'maj', 0).map(chordText), ['C5 E5 G5']);
+  eq(chordPlacements('bass', 'C', 'maj', 0).map(chordText), ['C3 E3 G3']);
+  eq(chordPlacements('treble', 'C', 'maj', 0, { ledger: true }).map(chordText), ['C4 E4 G4', 'C5 E5 G5']);
+});
+
+test('lectura acordes: toda colocación cabe en la pizarra (≤ 2 líneas) y en UNA ventana', () => {
+  for (const clef of ['treble', 'bass']) {
+    for (const type of READING_CHORD_TYPES) {
+      for (const root of ROOTS) {
+        for (let inv = 0; inv < CHORD_TYPES[type].degrees.length; inv++) {
+          for (const ps of chordPlacements(clef, root, type, inv, { ledger: true })) {
+            if (ps.some((p) => ledgerYs(noteY(p, clef)).length > 2)) throw new Error(`${chordText(ps)} lleva más de 2 líneas`);
+            const fits = RANGES.some((from) => ps.every((p) => p.midi >= from && p.midi <= from + 24));
+            if (!fits) throw new Error(`${chordText(ps)} no cabe en una ventana`);
+          }
+        }
+      }
+    }
+  }
+});
+
+test('lectura acordes: cada tipo tiene acordes en las dos claves con lo mínimo (sin líneas, naturales)', () => {
+  for (const type of READING_CHORD_TYPES) {
+    for (const clef of ['treble', 'bass']) {
+      const ids = chordIds(readingConfig({ mode: 'chords', clef, chordTypes: [type] }));
+      if (!ids.length) throw new Error(`${type} no tiene acordes en ${clef}`);
+    }
+  }
+});
+
+test('lectura acordes: compareChordReading exige notas y octavas exactas', () => {
+  const ps = chordReadingVoicing('F', 'maj7', 0, 4); // F4 A4 C5 E5
+  eq(compareChordReading(ps, [65, 69, 72, 76]).correct, true);
+  // Inversión (mismas notas, otras octavas): no vale en lectura.
+  const inv = compareChordReading(ps, [57, 60, 64, 65]);
+  eq([inv.correct, inv.hit, inv.missing.map(pitchText), inv.extra], [false, [65], ['A4', 'C5', 'E5'], [57, 60, 64]]);
+  // Duplicación: sobra la F5.
+  eq(compareChordReading(ps, [65, 69, 72, 76, 77]).extra, [77]);
+});
+
+test('lectura acordes: lo que sobró se escribe con ♭ si el acorde lleva ♭', () => {
+  const bb = chordReadingVoicing('Bb', 'maj', 0, 3);
+  eq(spellExtras([61], bb).map(pitchText), ['Db4']);
+  eq(spellExtras([61], chordReadingVoicing('D', 'maj', 0, 3)).map(pitchText), ['C#4']);
+});
+
+test('lectura acordes: ids por clave + acorde + inversión; sin inversiones solo la 0', () => {
+  eq(parseId('acorde|bass|Eb|m7|2'), { id: 'acorde|bass|Eb|m7|2', mode: 'chords', clef: 'bass', root: 'Eb', type: 'm7', inversion: 2 });
+  eq(parseId('treble|F#4').mode, 'notes');
+  const base = { mode: 'chords', clef: 'treble', chordTypes: ['maj'], ledger: true };
+  const plain = chordIds(readingConfig(base));
+  const withInv = chordIds(readingConfig({ ...base, inversions: true }));
+  eq([plain.length, plain.every((id) => id.endsWith('|0')), withInv.length], [NATURAL_ROOTS.length, true, NATURAL_ROOTS.length * 3]);
+});
+
+test('lectura acordes: se marca, se confirma y se compara exacto', () => {
+  const { reader, events } = makeReader({ mode: 'chords' });
+  reader.next();
+  eq(reader.current.mode, 'chords');
+  reader.submit(); // sin notas
+  eq(events.at(-1)[0], 'answer:empty');
+  const midis = reader.current.pitches.map((p) => p.midi);
+  for (const m of midis) reader.noteOn(m);
+  reader.noteOn(midis[0] + 1);
+  reader.noteOn(midis[0] + 1); // otro clic la desmarca
+  eq(events.at(-1), ['selection:change', { notes: midis, count: midis.length }]);
+  reader.submit();
+  eq(events.at(-1)[0], 'answer:correct');
+  reader.noteOn(midis[0]); // ya respondió: solo suena, no cambia nada
+  eq(events.at(-1)[0], 'note:on');
+});
+
+test('lectura acordes: una octava equivocada es error (no se aceptan inversiones)', () => {
+  const { reader, events } = makeReader({ mode: 'chords' });
+  reader.next();
+  const midis = reader.current.pitches.map((p) => p.midi);
+  for (const m of [midis[0] + 12, ...midis.slice(1)]) reader.noteOn(m);
+  reader.submit();
+  const [name, d] = events.at(-1);
+  eq([name, d.result.missing.length, d.result.extra], ['answer:wrong', 1, [midis[0] + 12]]);
+  eq(reader.items[reader.current.id].box, 1);
+});
+
+test('lectura: cambiar a acordes plantea un acorde; volver a notas, una nota', () => {
+  const { reader } = makeReader();
+  reader.next();
+  reader.setConfig({ ...reader.config, mode: 'chords' });
+  eq(reader.current.mode, 'chords');
+  reader.setConfig({ ...reader.config, mode: 'notes' });
+  eq(reader.current.mode, 'notes');
+});
+
+test('pentagrama: columna 1 (lo que sobró) va a la derecha del acorde', () => {
+  const ps = [{ name: 'C', octave: 5 }, { name: 'E', octave: 5 }, { name: 'G', octave: 5 }];
+  const out = layoutStaff({ notes: [...ps, { name: 'F', octave: 5, column: 1 }], mode: 'chord', clef: 'treble' });
+  const main = out.heads.filter((h) => h.index < 3);
+  const extra = out.heads.find((h) => h.index === 3);
+  if (!(extra.x > Math.max(...main.map((h) => h.x)) + GLYPHS.head.w)) throw new Error('la columna 1 no queda a la derecha');
+});
+
+test('pentagrama: becuadro en la columna 1 si la columna 0 alteró esa nota', () => {
+  const notes = [{ name: 'D', octave: 4 }, { name: 'F#', octave: 4 }, { name: 'A', octave: 4 }, { name: 'F', octave: 4, column: 1 }];
+  const out = layoutStaff({ notes, mode: 'chord', clef: 'treble' });
+  const glyphOf = (index) => out.accidentals.find((a) => a.index === index)?.glyph;
+  eq([glyphOf(1) === GLYPHS.sharp, glyphOf(3) === GLYPHS.natural], [true, true]);
 });
 
 /* ---------- Mostrar resultados ---------- */

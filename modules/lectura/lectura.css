@@ -60,3 +60,46 @@
   border-color: transparent;
   background: none;
 }
+
+/* Acordes: filas = tipos (su símbolo es más ancho que ♯/♭), columnas = las 12 tónicas. */
+.note-grid.chord-grid {
+  grid-template-columns: 44px repeat(var(--cols), minmax(22px, 1fr));
+  min-width: 380px;
+}
+
+.chord-grid .row-head {
+  justify-items: start;
+}
+
+/* ---------- Explicación de un acorde mal leído ---------- */
+
+/* Notas escritas, de grave a agudo, con su función (las que faltaron en naranja). */
+.chord-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-3);
+}
+
+.chord-notes li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  background: var(--ivory-1);
+  color: var(--ink);
+}
+
+.chord-notes .degree { font-size: 14px; color: var(--stone-2); }
+
+.chord-notes li.is-missing {
+  background: var(--miss);
+}
+
+.miss-list {
+  margin: 0 0 var(--sp-2);
+  padding-left: var(--sp-4);
+}

@@ -35,6 +35,11 @@
   box-sizing: border-box;
 }
 
+/* El atributo hidden siempre oculta, aunque la clase ponga display (p. ej. .btn es inline-flex). */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);

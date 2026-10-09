@@ -62,7 +62,7 @@ el título de las páginas y en la interfaz).
    tipo tiene una comparación sugerida (★); al cambiar de tipo con la comparación activa,
    pasa a la sugerida. Atajos: Espacio escuchar (lo que se ve), ↑↓ tipo, C comparar, V vista,
    N nombres, ← → ventanas, P pausa. Lógica en `js/explorer.js`.
-4. **Lectura** (notas sueltas ✅; acordes escritos en la etapa 4): una nota en
+4. **Lectura** (notas sueltas ✅; acordes escritos ✅): una nota en
    el pentagrama → la **primera tecla** tocada es la respuesta, en la **octava exacta**.
    El pentagrama va DENTRO del canvas, en una pizarra con marco de madera sobre el piano
    (anticipo de la opción B). Opciones: clave Sol / Fa / Ambas (elegir clave lleva el
@@ -75,6 +75,18 @@ el título de las páginas y en la interfaz).
    con Enter. Escuchar (Espacio) solo después de responder. Flecha que brilla = la nota
    está en otra ventana. Cajas Leitner por clave y nota (`lectura.items`); "rápido" ≤ 2 s.
    Lógica en `js/reading.js`; pizarra en `js/layers/reading-ui.js`.
+   **Acordes escritos** (selector "Notas | Acordes", mismas claves y mismo nivel de líneas
+   adicionales): acorde en bloque sin nombre, en posición cerrada (inversiones opcionales),
+   en una octava al azar entre las que caben en la pizarra y en UNA ventana. Se marcan
+   las teclas (Esc/Borrar limpia) y se confirma con Enter: exactamente esas notas y
+   octavas. Al confirmar suena el acorde; teclas: verde/naranja con su función (1, ♭3…),
+   rojo con su nombre lo que sobró; pizarra (más ancha: 88 px) igual, con lo que sobró
+   escrito al lado en rojo si cabe (columna 1 de `layoutStaff`, con becuadro si hace
+   falta); burbuja con el nombre (Fmaj7/A). Acierto → pasa solo (1,2 s); error → panel
+   con notas, "Faltó/Sobró" y los errores de octava. Opciones en "Acordes que entran":
+   tipos (tríadas por defecto; sus2/sus4; maj7, 7, m7, m7♭5; sin 9 ni m6/9), tónicas
+   naturales o las 12, inversiones sí/no. Ids `acorde|clave|tónica|tipo|inversión` en
+   `lectura.items`; "rápido" ≤ 2 s por nota.
 5. **Intervalos y escalas**: ejercicios visuales y de oído.
 6. **Práctica guiada con MusicXML**: el usuario sube un archivo MusicXML, se dibuja la
    partitura, se resalta la nota/acorde actual y se avanza solo cuando lo toca bien.
@@ -274,7 +286,7 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
   2. Módulo 3 Explorador (incluye "Comparar con…", p. ej. lidio vs mayor). ✅
   3. Módulo 4 Lectura, notas sueltas en sol y fa (primera tecla, octava exacta). ✅
      aprobada
-  4. Módulo 4 Lectura, acordes escritos (esquema; se ajusta en la revisión):
+  4. Módulo 4 Lectura, acordes escritos. ✅ aprobada (esquema original):
      - Selector "Notas | Acordes" en Lectura (misma página, misma pizarra, mismas claves).
      - Se dibuja un acorde en bloque (redondas, `layoutStaff` modo 'chord': segundas
        desplazadas y alteraciones en columnas) con `spellVoicing`; sin nombre del acorde:
