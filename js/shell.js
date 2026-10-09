@@ -6,6 +6,8 @@
  *   onButton()        botón que suelta el foco tras un clic (para que Enter/Espacio sigan
  *                     yendo a los atajos)
  *   bindSoundToggle() botón "Sonido: sí/no"
+ *   setupSideTools()  botones con ícono junto al canvas: nombres de las teclas (una C) y
+ *                     escuchar (una oreja). Son iguales en todos los módulos.
  *
  * Cada módulo pone su propia capa de interfaz (scene.set('ui', …)) y decide qué hacer con
  * cada nota en `onNote` (normalmente, llamar al noteOn de su ejercicio).
@@ -20,6 +22,7 @@ import { BackgroundLayer } from './layers/background.js';
 import { CharactersLayer } from './layers/characters.js';
 import { PianoLayer, hitTest } from './layers/piano.js';
 import { EffectsLayer } from './layers/effects.js';
+import { mountIcon } from './icons.js';
 
 /**
  * @param canvas    canvas visible
@@ -65,7 +68,10 @@ export function createStage({ canvas, stage, reserved, isPaused, onNote, onRange
     // clientWidth incluye el padding: restarlo para que el canvas no se salga por los lados
     // (las flechas de ventana están justo en los bordes).
     const style = getComputedStyle(stage);
-    const width = stage.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    // La columna de íconos (si hay) va al lado del canvas: su ancho no es para el canvas.
+    const tools = stage.querySelector('.side-tools');
+    const toolsWidth = tools ? tools.offsetWidth + parseFloat(style.columnGap || 0) : 0;
+    const width = stage.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - toolsWidth;
     renderer.resize(width, Math.max(180, window.innerHeight - reserved()));
   }
   window.addEventListener('resize', fit);
@@ -124,4 +130,18 @@ export function bindSoundToggle(button) {
     render();
   });
   render();
+}
+
+/**
+ * Botones de la columna junto al canvas. `names` alterna los nombres en las teclas (N);
+ * `listen` es escuchar (Espacio). Sin texto: el ícono lo dice y el nombre va en
+ * aria-label/title. Devuelve setNames(show) para reflejar el estado de los nombres.
+ */
+export function setupSideTools({ names, listen }) {
+  mountIcon(names, 'names');
+  mountIcon(listen, 'ear');
+  return function setNames(show) {
+    names.setAttribute('aria-pressed', String(show));
+    names.title = `Nombres en las teclas: ${show ? 'sí' : 'no'} (N)`;
+  };
 }

@@ -16,57 +16,27 @@
  * Burbuja corta con el veredicto a la derecha de la pizarra; cronómetro arriba.
  * En pausa se ve la pizarra vacía. Sprites y rectángulos se preparan en los eventos.
  */
-import { C, PAL } from '../engine/palette.js';
+import { C } from '../engine/palette.js';
 import { makeBubble } from '../engine/bubble.js';
-import { W } from '../engine/renderer.js';
 import { displayNote, slashChordName } from '../theory.js';
-import { noteY, layoutStaff, STAFF_HEIGHT } from '../notation.js';
+import { layoutStaff } from '../notation.js';
 import { spellExtras } from '../reading.js';
 import { StaffLayer } from './staff.js';
 import { TimerText } from './timer.js';
+import {
+  BOARD_Y, FRAME, BUBBLE_GAP, BUBBLE_CENTER_Y, fitsPaper, createBoard, drawBoard,
+} from './board.js';
 
 /** Ancho del papel en cada modo (el acorde con alteraciones y lo que sobró necesita más). */
 const BOARD_W = { notes: 72, chords: 88 };
-const BOARD_Y = 8;
-const FRAME = 3;
-const BUBBLE_GAP = 6;
-const BUBBLE_CENTER_Y = BOARD_Y + 30; // a la altura del centro del pentagrama
-
-/** Una nota se escribe al lado solo si cabe en el papel (hasta 4 líneas adicionales arriba, 3 abajo). */
-const PAPER_MIN_Y = 6;
-const PAPER_MAX_Y = 50;
-const fitsPaper = (pitch, clef) => {
-  const y = noteY(pitch, clef);
-  return y >= PAPER_MIN_Y && y <= PAPER_MAX_Y;
-};
 
 const pitchLabel = (p) => displayNote(p.name) + p.octave;
-
-/** Caja del papel (centrada en el canvas); el marco la rodea con 3 px. */
-const boardBox = (mode) => ({ x: (W - BOARD_W[mode]) >> 1, y: BOARD_Y, w: BOARD_W[mode], h: STAFF_HEIGHT });
-
-function makeBoard(box) {
-  const canvas = document.createElement('canvas');
-  canvas.width = box.w + FRAME * 2;
-  canvas.height = box.h + FRAME * 2;
-  const g = canvas.getContext('2d');
-  const rect = (c, x, y, w, h) => { g.fillStyle = PAL[c]; g.fillRect(x, y, w, h); };
-  rect(C.INK, 0, 0, canvas.width, canvas.height);
-  rect(C.WOOD_2, 1, 1, canvas.width - 2, canvas.height - 2);
-  rect(C.WOOD_1, 2, 2, canvas.width - 4, canvas.height - 4);
-  rect(C.WOOD_3, 2, 1, canvas.width - 4, 1); // canto superior iluminado
-  rect(C.STONE_0, FRAME, FRAME, box.w, box.h);
-  return canvas;
-}
 
 export class ReadingUiLayer {
   constructor(bus, session) {
     this.session = session;
     this.boards = {};
-    for (const mode of Object.keys(BOARD_W)) {
-      const box = boardBox(mode);
-      this.boards[mode] = { box, sprite: makeBoard(box) };
-    }
+    for (const [mode, w] of Object.entries(BOARD_W)) this.boards[mode] = createBoard(w);
     this.board = this.boards.notes;
     this.staff = new StaffLayer({ x: this.board.box.x, y: BOARD_Y });
     this.timer = new TimerText();
@@ -139,8 +109,8 @@ export class ReadingUiLayer {
   }
 
   draw(ctx) {
-    const { box, sprite } = this.board;
-    ctx.drawImage(sprite, box.x - FRAME, box.y - FRAME);
+    const { box } = this.board;
+    drawBoard(ctx, this.board);
     // En pausa lo escrito se oculta: la pausa no sirve para leer con el cronómetro detenido.
     if (this.session.paused) return;
     this.staff.draw(ctx);

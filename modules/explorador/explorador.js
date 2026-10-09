@@ -19,7 +19,8 @@ import {
 } from '../../js/explorer.js';
 import { load, save } from '../../js/storage.js';
 import { playNote, playChord, playSequence, stopPlayback } from '../../js/audio.js';
-import { createStage, bindShortcuts, onButton, bindSoundToggle } from '../../js/shell.js';
+import { createStage, bindShortcuts, onButton, bindSoundToggle, setupSideTools } from '../../js/shell.js';
+import { mountCircleOfFifths } from '../../js/fifths.js';
 import { MARK } from '../../js/layers/piano.js';
 import { ExplorerUiLayer } from '../../js/layers/explorer-ui.js';
 import { Staff } from '../../js/staff.js';
@@ -67,6 +68,9 @@ let state = sanitize({ ...DEFAULT_STATE, clef: load('explorador.state', DEFAULT_
 let paused = false;
 
 /* ---------------- Piezas ---------------- */
+
+mountCircleOfFifths(document.querySelector('.site-header .container'));
+const setNamesButton = setupSideTools({ names: els.namesBtn, listen: els.listenBtn });
 
 const bus = new EventBus(); // 'explore:change' y 'pause:change' (para las mascotas, más adelante)
 const stage = createStage({
@@ -299,8 +303,7 @@ function listen() {
 let showNames = load('showNames', false) === true;
 function renderNamesToggle() {
   piano.setShowNames(showNames);
-  els.namesBtn.setAttribute('aria-pressed', String(showNames));
-  els.namesBtn.innerHTML = `Nombres: ${showNames ? 'sí' : 'no'} <kbd>N</kbd>`;
+  setNamesButton(showNames);
 }
 function toggleNames() {
   if (paused) return;

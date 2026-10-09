@@ -67,6 +67,8 @@ function accidentalOf({ name }) {
  *                (p. ej. 'F♯4' en Lectura) o su grado en números romanos
  * @param colors  índice de nota (en el orden recibido) → índice de la paleta
  * @param minWidth  ancho mínimo de la caja (para que no cambie de tamaño entre ejercicios)
+ * @param slot    (solo 'sequence') px por nota; el de serie deja lugar a los grados. Sin
+ *                grados basta con 14 (una escala de 8 notas cabe en una pizarra pequeña)
  * @returns {
  *   width, height, clef: { glyph, x, y }, lines: [y], ledgers: [{ x, y, w }],
  *   heads: [{ x, y, index, displaced }], accidentals: [{ glyph, x, y, index }],
@@ -74,7 +76,7 @@ function accidentalOf({ name }) {
  * }  donde `index` es la posición de la nota en `notes` (para su color).
  */
 export function layoutStaff({
-  notes, mode = 'chord', clef = clefFor(notes), labels = false, colors = {}, minWidth = 0,
+  notes, mode = 'chord', clef = clefFor(notes), labels = false, colors = {}, minWidth = 0, slot = SLOT,
 }) {
   const out = {
     width: MIN_CHORD_WIDTH,
@@ -91,7 +93,7 @@ export function layoutStaff({
   };
   if (notes.length) {
     if (mode === 'chord') layoutChord(out, notes, clef);
-    else layoutSequence(out, notes, clef, labels);
+    else layoutSequence(out, notes, clef, labels, slot);
   }
   out.width = Math.max(out.width, minWidth);
   return out;
@@ -195,14 +197,14 @@ function layoutChordColumn(out, group, accs, clef, x) {
   return headX + headsWidth + LEDGER_OVER;
 }
 
-function layoutSequence(out, notes, clef, labels) {
+function layoutSequence(out, notes, clef, labels, slot) {
   const head = GLYPHS.head;
   // Una alteración vale hasta el final del compás para esa línea/espacio: si después vuelve
   // la misma letra natural (E♭3 … E3) hace falta un becuadro.
   const altered = new Map(); // 'E3' → alteración vigente
   notes.forEach((p, index) => {
     const y = noteY(p, clef);
-    const x = NOTES_X + SEQ_ACC + index * SLOT;
+    const x = NOTES_X + SEQ_ACC + index * slot;
     out.heads.push({ x, y, index, displaced: false });
     for (const ly of ledgerYs(y)) out.ledgers.push({ x: x - LEDGER_OVER, y: ly, w: head.w + LEDGER_OVER * 2 });
 
@@ -219,5 +221,5 @@ function layoutSequence(out, notes, clef, labels) {
     const text = p.label ?? (p.degree ? romanDegree(p.degree) : null);
     if (labels && text) out.labels.push({ text, cx: x + (head.w >> 1), y: LABEL_Y, index });
   });
-  out.width = NOTES_X + SEQ_ACC + notes.length * SLOT;
+  out.width = NOTES_X + SEQ_ACC + notes.length * slot;
 }

@@ -1,0 +1,85 @@
+/* Estilos propios de Intervalos y escalas (lo común a los módulos está en css/module.css). */
+
+#help-panel p,
+#help-panel ul {
+  margin: 0 0 var(--sp-2);
+}
+
+/* ---------- Botones de respuesta (bajo el canvas) ---------- */
+
+.answer-bar {
+  margin-bottom: var(--sp-3);
+}
+
+/* Los 12 intervalos (o las 12 escalas): 2 filas de 6, juntitos y siempre en el mismo lugar. */
+.choices {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--sp-1);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.choice {
+  min-height: 32px;
+  padding: 0 var(--sp-1);
+  font-size: 15px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* Tras responder: la correcta en verde y la elegida (si falló) en rojo. Se distinguen
+   también por el borde, no solo por el color. */
+.choice.is-right,
+.choice.is-right:disabled {
+  background: var(--ok-0);
+  color: var(--ivory-2);
+  border-color: var(--ok-1);
+  box-shadow: inset 2px 2px 0 var(--ok-1);
+}
+
+.choice.is-wrong,
+.choice.is-wrong:disabled {
+  background: var(--bad-0);
+  color: var(--ivory-2);
+  border-color: var(--bad-1);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.play-hint {
+  text-align: center;
+  margin: 0;
+}
+
+@media (max-width: 520px) {
+  .choice { font-size: 13px; }
+}
+
+/* ---------- Mapas de progreso ---------- */
+
+/* Intervalos: filas = forma (↑ ↓ juntas), columnas = los 12 intervalos. */
+.note-grid.interval-grid {
+  grid-template-columns: 44px repeat(var(--cols), minmax(22px, 1fr));
+  min-width: 480px;
+}
+
+/* Escalas: filas = escalas (nombre largo), columnas = tónicas o pruebas. */
+.note-grid.scale-grid {
+  grid-template-columns: 110px repeat(var(--cols), minmax(22px, 1fr));
+  min-width: 420px;
+}
+
+.note-grid.ear-grid {
+  grid-template-columns: 110px repeat(2, 80px);
+  min-width: 0;
+}
+
+.interval-grid .row-head,
+.scale-grid .row-head {
+  justify-items: start;
+}
+
+.clef-note {
+  margin: var(--sp-2) 0 0;
+}

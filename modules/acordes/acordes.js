@@ -16,7 +16,8 @@ import {
 import { MAX_BOX } from '../../js/srs.js';
 import { load, save } from '../../js/storage.js';
 import { playNote, playChord, stopPlayback } from '../../js/audio.js';
-import { createStage, bindShortcuts, onButton, bindSoundToggle } from '../../js/shell.js';
+import { createStage, bindShortcuts, onButton, bindSoundToggle, setupSideTools } from '../../js/shell.js';
+import { mountCircleOfFifths } from '../../js/fifths.js';
 import { computeMarks, KB_FROM } from '../../js/layers/piano.js';
 import { UiLayer } from '../../js/layers/ui.js';
 
@@ -45,6 +46,9 @@ const els = {
 };
 
 /* ---------------- Piezas ---------------- */
+
+mountCircleOfFifths(document.querySelector('.site-header .container'));
+const setNamesButton = setupSideTools({ names: els.namesBtn, listen: els.listenBtn });
 
 const bus = new EventBus();
 const trainer = new Trainer({ bus });
@@ -167,8 +171,7 @@ bindSoundToggle(els.soundToggle);
 let showNames = load('showNames', false) === true;
 function renderNamesToggle() {
   piano.setShowNames(showNames);
-  els.namesBtn.setAttribute('aria-pressed', String(showNames));
-  els.namesBtn.innerHTML = `Nombres: ${showNames ? 'sí' : 'no'} <kbd>N</kbd>`;
+  setNamesButton(showNames);
 }
 function toggleNames() {
   if (trainer.paused) return;

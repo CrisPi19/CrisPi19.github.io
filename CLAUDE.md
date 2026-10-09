@@ -38,11 +38,22 @@ el título de las páginas y en la interfaz).
 - Accesibilidad: atajos de teclado (Enter, Esc, Espacio, N, ← →; en el Explorador también
   ↑↓, C y V); las teclas del canvas no
   son elementos accesibles para lectores de pantalla.
+- **Nombres y Escuchar** son botones con ícono pixel art (sin texto) en una columna junto al
+  canvas, iguales en todos los módulos: una C arriba (nombres en las teclas, N) y una oreja
+  abajo (escuchar, Espacio). En Lectura la oreja está siempre en gris: ahí no se usa
+  (`shell.setupSideTools()`, íconos en `js/icons.js`).
 - **Pausa** con la tecla P (o Pausa): no tiene botón ni aparece en pantalla. Al pausar se
   detiene todo (escena, cronómetro, entrada de notas y botones), se oculta el acorde y el
   canvas muestra "En pausa" sobre una trama oscura. El tiempo en pausa no cuenta para la
   repetición espaciada. Lógica en `trainer.setPaused()`; dibujo en `js/engine/pause.js`
   (común a todos los módulos).
+- **Círculo de quintas** en todos los módulos (`js/fifths.js`): botón pequeño arriba a la
+  derecha con una rosa cromática pixel art (sin texto) que abre una ventana flotante en el
+  medio: mayores afuera, relativas menores adentro, armaduras en pentagramas chiquitos
+  (F♯ y G♭ abajo); tocar una nota la hace sonar desde C4. **No pausa nada** (sin fondo que
+  bloquee; el cronómetro sigue). Se cierra con ×, con el botón o con Esc (que no llega al
+  módulo). **Excepción a la paleta**: la rueda usa 12 tonos propios (y su versión oscura
+  para las menores), solo en esa ventana y su ícono.
 - **Fondo animado, efectos/partículas y mascotas se hacen al final**, después de terminar
   los 6 módulos. Mientras tanto las capas existen como placeholders.
 
@@ -72,7 +83,7 @@ el título de las páginas y en la interfaz).
    verde y pasa sola a la siguiente (0,7 s). Al fallar: la pedida en naranja y la tocada
    en rojo, en la pizarra (escrita al lado, con su nombre debajo) y en las teclas; panel
    HTML con la explicación ("una 3.ª más abajo", "octava equivocada", "sin el ♯"); sigue
-   con Enter. Escuchar (Espacio) solo después de responder. Flecha que brilla = la nota
+   con Enter. Sin "escuchar" (la oreja va en gris); los acordes suenan solos al confirmar. Flecha que brilla = la nota
    está en otra ventana. Cajas Leitner por clave y nota (`lectura.items`); "rápido" ≤ 2 s.
    Lógica en `js/reading.js`; pizarra en `js/layers/reading-ui.js`.
    **Acordes escritos** (selector "Notas | Acordes", mismas claves y mismo nivel de líneas
@@ -87,7 +98,24 @@ el título de las páginas y en la interfaz).
    tipos (tríadas por defecto; sus2/sus4; maj7, 7, m7, m7♭5; sin 9 ni m6/9), tónicas
    naturales o las 12, inversiones sí/no. Ids `acorde|clave|tónica|tipo|inversión` en
    `lectura.items`; "rápido" ≤ 2 s por nota.
-5. **Intervalos y escalas**: ejercicios visuales y de oído.
+5. **Intervalos y escalas** ✅: solo **reconocer** (construir nombre → teclas ya
+   lo entrenan Acordes y Lectura). Selector "Intervalos | Escalas"; fuente Pentagrama / Oído
+   / Ambos; lo que se oye se responde **nombrando** (botones HTML con atajos 1–9, 0) o
+   **tocando** (octava exacta): intervalo → la 1.ª nota dorada está dada y la primera tecla
+   distinta es la respuesta; escala → tónica y octava doradas, se marcan las de en medio y
+   Enter. Lo escrito se nombra siempre. Los botones de respuesta son siempre los 12 (2 filas
+   de 6, sin atajos de teclado), aunque no todos estén en rotación. Intervalos: los 12 de la
+   octava (2m … 8J; el tritono es UN botón, 4A/5d, escrito al azar como 4A o como 5d; por
+   defecto 3m, 3M, 5J, 8J), forma ascendente / descendente / armónico / mezcla,
+   alteraciones sí/no, sin líneas adicionales. Escalas: las 12 de `SCALE_TYPES`. Escalas: de la tónica a su
+   octava, en la pizarra con las menos líneas adicionales (≤ 2), sin dobles alteraciones;
+   tónicas naturales o las 12. Lo que se oye suena en C4–C6 (sol). Al responder: se escribe
+   lo que sonó (dorado dada/tónica, verde, naranja lo que era, rojo lo que sobró), burbuja
+   con el nombre, teclas con nombres (intervalos) o funciones (escalas); error → panel
+   (semitonos; en escalas, en qué se diferencia de la elegida, como en el Explorador). Ids
+   `int|prueba|intervalo|forma` y `esc|staff|escala|tónica` / `esc|ear|escala` /
+   `esc|play|escala` en `reconocer.items`. Lógica en `js/recognize.js`; pizarra en
+   `js/layers/recognize-ui.js` (común con Lectura: `js/layers/board.js`).
 6. **Práctica guiada con MusicXML**: el usuario sube un archivo MusicXML, se dibuja la
    partitura, se resalta la nota/acorde actual y se avanza solo cuando lo toca bien.
 
@@ -249,6 +277,10 @@ js/theory.js             ← teoría pura (notas, grados, acordes, escalas, inte
                            notas escritas con octava, validación)
 js/explorer.js           ← lógica del Explorador (notas por clave, comparación)
 js/reading.js            ← ejercicio de Lectura (extiende Session; sin DOM)
+js/recognize.js          ← Reconocer intervalos y escalas (módulo 5; extiende Session)
+js/choices.js            ← botones de respuesta múltiple (HTML, atajos 1–9 y 0)
+js/fifths.js             ← ventana del círculo de quintas (común a todos los módulos)
+js/icons.js              ← íconos pixel art de botones HTML (C de nombres, oreja de escuchar)
 js/notation.js           ← diagramación del pentagrama pixel art (sin DOM)
 js/staff.js              ← panel del pentagrama bajo la escena (usa layers/staff.js)
 js/srs.js  storage.js    ← repetición espaciada, localStorage
@@ -261,7 +293,8 @@ js/events.js             ← bus de eventos
 js/engine/               ← paleta, renderer, loop, fuente, glifos musicales, input,
                            partículas, sprites
 js/layers/               ← background, characters, piano, staff, effects, ui,
-                           explorer-ui, reading-ui, timer (cronómetro común)
+                           explorer-ui, board (pizarra común), reading-ui, recognize-ui,
+                           timer (cronómetro común)
 js/midi.js               ← entrada MIDI (módulo 2)
 data/                    ← diálogos
 assets/palette/  assets/sprites/
@@ -303,7 +336,8 @@ La lógica (teoría, entrenador) va separada de la interfaz para reutilizarla y 
        (≤ 2 líneas adicionales) y en UNA ventana del teclado; si no cabe, no entra.
      - Cajas Leitner por clave + acorde + inversión; "rápido" ≤ 2 s por nota.
      - Lógica en `js/reading.js` (selección como en `trainer.js`), con pruebas.
-  5. Módulo 5 Intervalos y escalas (visual y de oído).
+  5. Módulo 5 Intervalos y escalas (visual y de oído): solo reconocer, intervalos y
+     escalas juntos, más el círculo de quintas en todos los módulos. ✅
   6. Módulo 6 MusicXML: en pantalla se acepta cualquier octava y la ventana sigue a la
      partitura; con MIDI, octava exacta.
 - Escalas: mayor, menor natural/armónica/melódica, los 7 modos, pentatónicas mayor y

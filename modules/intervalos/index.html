@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intervalos y escalas · CrisPianist</title>
+  <meta name="description" content="Reconoce intervalos y escalas en el pentagrama y de oído: nómbralos o tócalos.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/tiny5@5.3.0/index.css">
+  <link rel="stylesheet" href="../../css/palette.css">
+  <link rel="stylesheet" href="../../css/base.css">
+  <link rel="stylesheet" href="../../css/module.css">
+  <link rel="stylesheet" href="intervalos.css">
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="back-link" href="../../">← Inicio</a>
+      <h1 class="site-title">CrisPianist <span class="subtitle">· Intervalos y escalas</span></h1>
+      <button class="btn btn-sm" type="button" id="sound-toggle" aria-pressed="true">Sonido: sí</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage" id="stage">
+      <canvas id="screen" class="screen" aria-label="Pizarra con un intervalo o una escala (o una pregunta de oído) y piano"></canvas>
+      <div class="side-tools">
+        <button class="btn tool-btn" type="button" id="names-btn" aria-pressed="false" aria-label="Nombres en las teclas (N)" title="Nombres en las teclas (N)"></button>
+        <button class="btn tool-btn" type="button" id="listen-btn" aria-label="Escuchar (Espacio)" title="Escuchar (Espacio)"></button>
+      </div>
+    </div>
+
+    <div class="answer-bar container" id="answer-bar">
+      <div class="choices" id="choices" role="group" aria-label="Respuestas"></div>
+      <p class="play-hint muted small" id="play-hint" hidden></p>
+    </div>
+
+    <div class="controls container" id="controls">
+      <div class="segmented" role="group" aria-label="Qué reconocer">
+        <button class="btn btn-sm" type="button" data-family="intervals">Intervalos</button>
+        <button class="btn btn-sm" type="button" data-family="scales">Escalas</button>
+      </div>
+      <div class="segmented" role="group" aria-label="De dónde">
+        <button class="btn btn-sm" type="button" data-source="staff">Pentagrama</button>
+        <button class="btn btn-sm" type="button" data-source="ear">Oído</button>
+        <button class="btn btn-sm" type="button" data-source="both">Ambos</button>
+      </div>
+      <div class="segmented" role="group" aria-label="Cómo responder lo que se oye">
+        <button class="btn btn-sm" type="button" data-answer-mode="name" title="Lo que oyes se responde eligiendo su nombre">Oído: nombrar</button>
+        <button class="btn btn-sm" type="button" data-answer-mode="play" title="Lo que oyes se responde tocándolo en el piano (octava exacta)">Oído: tocar</button>
+      </div>
+      <button class="btn btn-sm" type="button" id="clear-btn" hidden>Borrar <kbd>Esc</kbd></button>
+      <button class="btn btn-sm btn-primary" type="button" id="main-btn">Siguiente <kbd>Enter</kbd></button>
+    </div>
+
+    <div class="container">
+      <section class="panel feedback" id="feedback" aria-live="polite" hidden></section>
+
+      <section class="session" aria-label="Sesión actual">
+        <div class="stat panel"><span class="stat-value" id="stat-score">0/0</span><span class="stat-label">aciertos</span></div>
+        <div class="stat panel"><span class="stat-value" id="stat-streak">0</span><span class="stat-label">racha</span></div>
+        <div class="stat panel"><span class="stat-value" id="stat-avg">–</span><span class="stat-label">tiempo medio</span></div>
+      </section>
+
+      <details class="panel fold" id="help-panel">
+        <summary>Cómo funciona</summary>
+        <div class="fold-body small">
+          <p><strong>Pentagrama.</strong> En la pizarra hay un intervalo (dos notas) o una escala
+            (de la tónica a su octava). Elige su nombre con los botones de bajo el piano: siempre
+            están los 12 en el mismo lugar, aunque no todos entren en la rotación.</p>
+          <p><strong>Oído.</strong> Suena un intervalo o una escala (vuelve a escucharlo con la oreja junto al piano o con <kbd>Espacio</kbd>). Con <em>Oído: nombrar</em> eliges su nombre; con <em>Oído: tocar</em>
+            lo tocas en el piano, en la <strong>octava exacta</strong>:</p>
+          <ul>
+            <li>Intervalo: la primera nota está en <strong>dorado</strong>; la primera tecla que
+              toques (que no sea la dorada) es tu respuesta: la otra nota.</li>
+            <li>Escala: la tónica y su octava están en dorado; marca las notas de en medio (otro
+              clic desmarca, <kbd>Esc</kbd> borra) y confirma con <kbd>Enter</kbd>.</li>
+          </ul>
+          <p>El tritono es un solo botón (4A/5d): se escribe como cuarta aumentada (C–F♯) o como
+            quinta disminuida (C–G♭), pero suena igual.</p>
+          <p>Al responder, lo que sonó se escribe en la pizarra y se marca en las teclas (dorado:
+            tónica o nota dada; verde: acierto; naranja: lo que era; rojo: lo que sobró). Al acertar
+            pasa solo; al fallar, mira la explicación y sigue con <kbd>Enter</kbd>.</p>
+        </div>
+      </details>
+
+      <details class="panel fold" id="interval-panel">
+        <summary>Intervalos que entran</summary>
+        <div class="fold-body">
+          <div id="interval-options"></div>
+          <fieldset class="option-group">
+            <legend>Forma</legend>
+            <div class="segmented" role="group" aria-label="Forma del intervalo">
+              <button class="btn btn-sm" type="button" data-form="asc" title="Primero la de abajo">Ascendente</button>
+              <button class="btn btn-sm" type="button" data-form="desc" title="Primero la de arriba">Descendente</button>
+              <button class="btn btn-sm" type="button" data-form="harm" title="Las dos a la vez">Armónico</button>
+              <button class="btn btn-sm" type="button" data-form="mix">Mezcla</button>
+            </div>
+          </fieldset>
+          <fieldset class="option-group">
+            <legend>Alteraciones (pentagrama)</legend>
+            <div class="segmented" role="group" aria-label="Alteraciones">
+              <button class="btn btn-sm" type="button" data-accidentals="false">No</button>
+              <button class="btn btn-sm" type="button" data-accidentals="true">Sí</button>
+            </div>
+          </fieldset>
+          <p class="muted small" id="interval-count"></p>
+        </div>
+      </details>
+
+      <details class="panel fold" id="scale-panel">
+        <summary>Escalas que entran</summary>
+        <div class="fold-body">
+          <div id="scale-options"></div>
+          <fieldset class="option-group">
+            <legend>Tónicas</legend>
+            <div class="segmented" role="group" aria-label="Tónicas">
+              <button class="btn btn-sm" type="button" data-roots="naturals">Naturales</button>
+              <button class="btn btn-sm" type="button" data-roots="all">Las 12</button>
+            </div>
+          </fieldset>
+          <p class="muted small" id="scale-count"></p>
+        </div>
+      </details>
+
+      <details class="panel fold" id="clef-panel">
+        <summary>Clave (pentagrama)</summary>
+        <div class="fold-body">
+          <div class="segmented" role="group" aria-label="Clave">
+            <button class="btn btn-sm" type="button" data-clef="treble">Sol</button>
+            <button class="btn btn-sm" type="button" data-clef="bass">Fa</button>
+            <button class="btn btn-sm" type="button" data-clef="both">Ambas</button>
+          </div>
+          <p class="muted small clef-note">Lo que se oye siempre se escribe en clave de sol (suena en C4–C6).</p>
+        </div>
+      </details>
+
+      <details class="panel fold" id="progress-panel">
+        <summary>Progreso</summary>
+        <div class="fold-body">
+          <p class="small muted" id="progress-intro"></p>
+          <div class="legend" id="legend"></div>
+          <p class="small" id="progress-summary"></p>
+          <div id="progress-maps"></div>
+          <button class="btn btn-sm" type="button" id="reset-btn">Reiniciar progreso</button>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script type="module" src="intervalos.js"></script>
+</body>
+</html>

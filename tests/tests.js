@@ -1,5 +1,5 @@
 /*
- * Pruebas de js/theory.js y js/srs.js. Abrir tests/index.html con el servidor local.
+ * Pruebas de la lógica (teoría, repetición espaciada, ejercicios). Abrir tests/index.html con el servidor local.
  * Mini "framework": test(nombre, fn) y eq(real, esperado).
  */
 import {
@@ -32,6 +32,11 @@ import {
   chordReadingVoicing, chordPlacements, compareChordReading, spellExtras, chordIds, parseId,
   READING_CHORD_TYPES, pitchText,
 } from '../js/reading.js';
+import {
+  Recognizer, sanitizeConfig as recConfig, parseId as recParseId, testsOf, intervalCandidates,
+  scalePlacement, scaleSpellable, scaleIds, intervalIds, compareScalePlay, RECOGNIZE_INTERVALS,
+  RECOGNIZE_SCALES,
+} from '../js/recognize.js';
 
 const results = [];
 
@@ -878,6 +883,177 @@ test('pentagrama: becuadro en la columna 1 si la columna 0 alteró esa nota', ()
   const out = layoutStaff({ notes, mode: 'chord', clef: 'treble' });
   const glyphOf = (index) => out.accidentals.find((a) => a.index === index)?.glyph;
   eq([glyphOf(1) === GLYPHS.sharp, glyphOf(3) === GLYPHS.natural], [true, true]);
+});
+
+/* ---------- Reconocer intervalos y escalas ---------- */
+
+function makeRec(config = {}) {
+  const bus = new EventBus();
+  const events = [];
+  for (const e of ['exercise:new', 'answer:correct', 'answer:wrong', 'answer:empty', 'note:on', 'selection:change']) {
+    bus.on(e, (d) => events.push([e, d]));
+  }
+  let seed = 7;
+  const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const rec = new Recognizer({ bus, persist: false, now: () => 0, random });
+  rec.config = recConfig(config);
+  return { rec, events };
+}
+
+/** Plantea un ejercicio concreto (sin sorteo). */
+function startWith(rec, id) {
+  const item = recParseId(id);
+  if (item.family === 'intervals') rec.buildInterval(item);
+  else rec.buildScale(item);
+  rec.begin(item);
+  return item;
+}
+
+test('reconocer: configuración por defecto e inválida', () => {
+  eq(recConfig({ family: 'x', intervals: ['zz'], scales: [] }), {
+    family: 'intervals', source: 'both', answer: 'name', form: 'asc', clef: 'treble', accidentals: false,
+    intervals: ['m3', 'M3', 'P5', 'P8'], scales: ['major', 'minor', 'harmonic', 'melodic'], roots: 'naturals',
+  });
+});
+
+test('reconocer: pruebas según de dónde y cómo responder', () => {
+  eq(testsOf(recConfig({ source: 'staff', answer: 'play' })), ['staff']);
+  eq(testsOf(recConfig({ source: 'ear' })), ['ear']);
+  eq(testsOf(recConfig({ source: 'both', answer: 'play' })), ['staff', 'play']);
+});
+
+test('reconocer: los candidatos de un intervalo SON ese intervalo y caben en el pentagrama', () => {
+  for (const form of ['asc', 'desc', 'harm']) {
+    for (const interval of RECOGNIZE_INTERVALS) {
+      // En alguna clave tiene que haber (la 9m natural no cabe en fa sin líneas: E–F, B–C se salen).
+      if (!['treble', 'bass'].some((clef) => intervalCandidates(interval, form, clef, { accidentals: false }).length)) {
+        throw new Error(`${interval} ${form} sin candidatos`);
+      }
+    }
+  }
+  for (const clef of ['treble', 'bass']) {
+    for (const form of ['asc', 'desc', 'harm']) {
+      for (const interval of RECOGNIZE_INTERVALS) {
+        const pairs = intervalCandidates(interval, form, clef, { accidentals: false });
+        for (const [given, other, spelled] of pairs) {
+          if (intervalBetween(given, other) !== spelled) throw new Error(`${given.name}${given.octave}–${other.name}${other.octave} no es ${spelled}`);
+          if (interval === 'TT' ? !['A4', 'd5'].includes(spelled) : spelled !== interval) throw new Error(`${interval} escrito como ${spelled}`);
+          if (other.name.length > 1 || given.name.length > 1) throw new Error('sin alteraciones pedidas');
+          if ((form === 'desc') !== (given.midi > other.midi)) throw new Error(`dirección mal en ${form}`);
+          if ([given, other].some((p) => ledgerYs(noteY(p, clef)).length)) throw new Error('lleva líneas adicionales');
+        }
+      }
+    }
+  }
+});
+
+test('reconocer: de oído, todo en C4–C6 y sin dobles alteraciones ni E♯/C♭', () => {
+  for (const interval of RECOGNIZE_INTERVALS) {
+    for (const form of ['asc', 'desc', 'harm']) {
+      const pairs = intervalCandidates(interval, form);
+      if (!pairs.length) throw new Error(`${interval} ${form} sin candidatos`);
+      for (const [given, other] of pairs) {
+        for (const p of [given, other]) {
+          if (p.midi < 60 || p.midi > 84) throw new Error(`${p.name}${p.octave} fuera de C4–C6`);
+          if (p.name.length > 2 || ['E#', 'B#', 'Cb', 'Fb'].includes(p.name)) throw new Error(`${p.name} mal escrita`);
+        }
+      }
+    }
+  }
+});
+
+test('reconocer: escala en la pizarra con las menos líneas adicionales', () => {
+  eq(texts(scalePlacement('C', 'major', 'treble')), ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']);
+  eq(texts(scalePlacement('C', 'major', 'bass')), ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4']);
+  eq([scaleSpellable('Db', 'minor'), scaleSpellable('D', 'lydian')], [false, true]);
+});
+
+test('reconocer: toda escala que entra cabe en la pizarra (≤ 2 líneas) en alguna clave', () => {
+  const ids = scaleIds(recConfig({ source: 'staff', clef: 'both', roots: 'all', scales: RECOGNIZE_SCALES }));
+  if (ids.length < 100) throw new Error(`muy pocas: ${ids.length}`);
+  for (const id of ids) {
+    const { scale, root } = recParseId(id);
+    const ok = ['treble', 'bass'].some((clef) => {
+      const ps = scalePlacement(root, scale, clef);
+      return ps && ps.every((p) => ledgerYs(noteY(p, clef)).length <= 2);
+    });
+    if (!ok) throw new Error(`${id} no cabe`);
+  }
+});
+
+test('reconocer: escala tocada compara exacto y no cuenta la tónica ni su octava', () => {
+  const ps = spellScaleVoicing('D', 'lydian', 60); // D4 … D5
+  const inner = ps.slice(1, -1).map((p) => p.midi);
+  eq(compareScalePlay(ps, inner).correct, true);
+  eq(compareScalePlay(ps, [ps[0].midi, ...inner, ps[7].midi]).correct, true);
+  const wrong = compareScalePlay(ps, [...inner.slice(0, 2), 67, ...inner.slice(3)]); // G4 en vez de G♯4
+  eq([wrong.correct, wrong.missing.map(pitchText), wrong.extra], [false, ['G#4'], [67]]);
+  eq(compareScalePlay(ps, inner.map((m) => m + 12)).hit.length, 0); // otra octava: no vale
+});
+
+test('reconocer: 12 intervalos; el tritono es uno solo, escrito como 4A o 5d', () => {
+  eq(RECOGNIZE_INTERVALS.length, 12);
+  const { rec, events } = makeRec({ source: 'both' });
+  startWith(rec, 'int|staff|m3|asc');
+  rec.choose('M3');
+  eq([events.at(-1)[0], events.at(-1)[1].answer], ['answer:wrong', 'M3']);
+  const spelled = new Set();
+  for (let i = 0; i < 30; i++) {
+    const item = startWith(rec, 'int|staff|TT|asc');
+    spelled.add(item.spelled);
+    rec.choose('TT');
+    if (events.at(-1)[0] !== 'answer:correct') throw new Error('el tritono no se aceptó');
+  }
+  eq([...spelled].sort(), ['A4', 'd5']);
+  // Configuraciones guardadas con 4A/5d separados pasan al tritono.
+  eq(recConfig({ intervals: ['A4', 'd5', 'm9', 'P5'] }).intervals, ['TT', 'P5']);
+});
+
+test('reconocer: intervalo tocado: la dada solo suena; la primera otra tecla es la respuesta', () => {
+  const { rec, events } = makeRec({ source: 'ear', answer: 'play' });
+  const item = startWith(rec, 'int|play|P5|desc');
+  eq(item.given.midi - item.target.midi, 7);
+  rec.noteOn(item.given.midi);
+  eq([events.at(-1)[0], rec.phase], ['note:on', 'asking']);
+  rec.noteOn(item.target.midi + 12); // octava equivocada
+  const [name, d] = events.at(-1);
+  eq([name, d.played, rec.items[item.id].box], ['answer:wrong', item.target.midi + 12, 1]);
+});
+
+test('reconocer: escala tocada: se marca, las doradas no cuentan, se confirma', () => {
+  const { rec, events } = makeRec({ family: 'scales', source: 'ear', answer: 'play' });
+  const item = startWith(rec, 'esc|play|major');
+  rec.submit();
+  eq(events.at(-1)[0], 'answer:empty');
+  rec.noteOn(item.given.midi); // la tónica: solo suena
+  eq(rec.getSelected(), []);
+  for (const p of item.pitches.slice(1, -1)) rec.noteOn(p.midi);
+  rec.submit();
+  eq(events.at(-1)[0], 'answer:correct');
+});
+
+test('reconocer: elegir nombre de escala; tocar no responde en una prueba de nombre', () => {
+  const { rec, events } = makeRec({ family: 'scales' });
+  const item = startWith(rec, 'esc|staff|lydian|F');
+  eq([item.root, item.pitches[0].name, item.pitches.length], ['F', 'F', 8]);
+  rec.noteOn(60);
+  eq([events.at(-1)[0], rec.phase], ['note:on', 'asking']);
+  rec.choose('lydian');
+  eq(events.at(-1)[0], 'answer:correct');
+});
+
+test('reconocer: ids por prueba; cambiar de familia plantea uno de la nueva', () => {
+  const ids = intervalIds(recConfig({ source: 'both', form: 'mix', intervals: ['m3'] }));
+  eq(ids, ['int|staff|m3|asc', 'int|staff|m3|desc', 'int|staff|m3|harm', 'int|ear|m3|asc', 'int|ear|m3|desc', 'int|ear|m3|harm']);
+  const { rec } = makeRec();
+  rec.next();
+  rec.setConfig({ ...rec.config, family: 'scales' });
+  eq(rec.current.family, 'scales');
+});
+
+test('pentagrama: secuencia con slot más angosto (escala sin grados)', () => {
+  const ps = spellScaleVoicing('C', 'major', 60);
+  eq([layoutStaff({ notes: ps, mode: 'sequence', clef: 'treble' }).width, layoutStaff({ notes: ps, mode: 'sequence', clef: 'treble', slot: 14 }).width], [186, 138]);
 });
 
 /* ---------- Mostrar resultados ---------- */

@@ -8,7 +8,30 @@
 .stage {
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  column-gap: var(--sp-2);
   padding: var(--sp-4) var(--sp-2) var(--sp-3);
+}
+
+/* Columna junto al canvas: nombres de las teclas (C) arriba y escuchar (oreja) abajo.
+   Botones con ícono pixel art y sin texto: se repiten en todos los módulos. */
+.side-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.tool-btn {
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+}
+
+/* Desactivado (en pausa, o escuchar en Lectura): el ícono se apaga a gris. */
+.tool-btn:disabled .pixel {
+  filter: grayscale(1);
+  opacity: 0.35;
 }
 
 .screen {
@@ -192,3 +215,155 @@
 .cell[data-box="3"] { background: var(--fx-gold); }
 .cell[data-box="4"] { background: var(--ok-0); }
 .cell[data-box="5"] { background: var(--ok-1); }
+
+/* ---------- Mapas de progreso (una cuadrícula por clave, prueba…) ---------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  font-size: 14px;
+  margin-bottom: var(--sp-3);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend .cell {
+  width: 14px;
+  height: 14px;
+}
+
+.map-title {
+  margin: var(--sp-3) 0 var(--sp-2);
+  font-size: 16px;
+  color: var(--text-strong);
+}
+
+.progress-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--sp-3);
+}
+
+/* Columnas = notas naturales de grave a agudo; filas = ♯, natural, ♭. */
+.note-grid {
+  display: grid;
+  grid-template-columns: 20px repeat(var(--cols), minmax(22px, 1fr));
+  gap: 2px;
+  min-width: 460px;
+  font-size: 12px;
+}
+
+.note-grid .head {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.note-grid .cell {
+  height: 18px;
+}
+
+/* E♯, C♭… no se preguntan: hueco vacío para que las columnas sigan alineadas. */
+.note-grid .cell.is-none {
+  border-color: transparent;
+  background: none;
+}
+
+/* ---------- Explicación de un error: notas con su función ---------- */
+
+/* Notas escritas, de grave a agudo, con su función (las que faltaron en naranja). */
+.chord-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-3);
+}
+
+.chord-notes li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  background: var(--ivory-1);
+  color: var(--ink);
+}
+
+.chord-notes .degree { font-size: 14px; color: var(--stone-2); }
+
+.chord-notes li.is-missing {
+  background: var(--miss);
+}
+
+.miss-list {
+  margin: 0 0 var(--sp-2);
+  padding-left: var(--sp-4);
+}
+
+/* ---------- Círculo de quintas (js/fifths.js), en todos los módulos ---------- */
+
+/* Canvas pixel art fuera de la escena (ícono y ventana): píxeles nítidos al escalar. */
+.pixel {
+  display: block;
+  image-rendering: crisp-edges; /* Firefox */
+  image-rendering: pixelated;
+}
+
+.fifths-btn {
+  padding: 0 6px;
+}
+
+/* Capa de toda la pantalla que NO atrapa clics: solo la ventana los recibe, así el
+   ejercicio de atrás se puede seguir usando (la ventana no pausa nada). */
+.fifths-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.fifths-window {
+  pointer-events: auto;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: var(--sp-3);
+  box-shadow: inset 2px 2px 0 var(--edge-hi), 0 0 0 2px var(--wood-1), 6px 6px 0 var(--ink);
+}
+
+.fifths-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.fifths-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.fifths-close {
+  min-width: 32px;
+  font-size: 18px;
+}
+
+.fifths-canvas {
+  margin: 0 auto var(--sp-2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.fifths-window p {
+  margin: 0;
+  max-width: 544px;
+}

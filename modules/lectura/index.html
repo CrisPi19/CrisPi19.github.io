@@ -24,6 +24,10 @@
   <main>
     <div class="stage" id="stage">
       <canvas id="screen" class="screen" aria-label="Pentagrama con una nota o un acorde y piano: toca esas teclas en su octava"></canvas>
+      <div class="side-tools">
+        <button class="btn tool-btn" type="button" id="names-btn" aria-pressed="false" aria-label="Nombres en las teclas (N)" title="Nombres en las teclas (N)"></button>
+        <button class="btn tool-btn" type="button" id="listen-btn" aria-label="Escuchar: no se usa en Lectura" title="Escuchar: no se usa en Lectura" disabled></button>
+      </div>
     </div>
 
     <div class="controls container" id="controls">
@@ -41,9 +45,7 @@
         <button class="btn btn-sm" type="button" data-ledger="true">+ líneas adicionales</button>
       </div>
       <button class="btn btn-sm" type="button" id="acc-btn" aria-pressed="false">Alteraciones: no</button>
-      <button class="btn btn-sm" type="button" id="names-btn" aria-pressed="false">Nombres: no <kbd>N</kbd></button>
       <button class="btn btn-sm" type="button" id="clear-btn" hidden>Borrar <kbd>Esc</kbd></button>
-      <button class="btn btn-sm" type="button" id="listen-btn">Escuchar <kbd>Espacio</kbd></button>
       <button class="btn btn-sm btn-primary" type="button" id="main-btn">Siguiente <kbd>Enter</kbd></button>
     </div>
 

@@ -4,62 +4,7 @@
   margin: 0 0 var(--sp-2);
 }
 
-/* ---------- Mapa de progreso: una cuadrícula por clave ---------- */
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  font-size: 14px;
-  margin-bottom: var(--sp-3);
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend .cell {
-  width: 14px;
-  height: 14px;
-}
-
-.map-title {
-  margin: var(--sp-3) 0 var(--sp-2);
-  font-size: 16px;
-  color: var(--text-strong);
-}
-
-.progress-scroll {
-  overflow-x: auto;
-  margin-bottom: var(--sp-3);
-}
-
-/* Columnas = notas naturales de grave a agudo; filas = ♯, natural, ♭. */
-.note-grid {
-  display: grid;
-  grid-template-columns: 20px repeat(var(--cols), minmax(22px, 1fr));
-  gap: 2px;
-  min-width: 460px;
-  font-size: 12px;
-}
-
-.note-grid .head {
-  display: grid;
-  place-items: center;
-  color: var(--text-muted);
-}
-
-.note-grid .cell {
-  height: 18px;
-}
-
-/* E♯, C♭… no se preguntan: hueco vacío para que las columnas sigan alineadas. */
-.note-grid .cell.is-none {
-  border-color: transparent;
-  background: none;
-}
+/* ---------- Mapa de progreso (lo común está en css/module.css) ---------- */
 
 /* Acordes: filas = tipos (su símbolo es más ancho que ♯/♭), columnas = las 12 tónicas. */
 .note-grid.chord-grid {
@@ -69,37 +14,4 @@
 
 .chord-grid .row-head {
   justify-items: start;
-}
-
-/* ---------- Explicación de un acorde mal leído ---------- */
-
-/* Notas escritas, de grave a agudo, con su función (las que faltaron en naranja). */
-.chord-notes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  list-style: none;
-  padding: 0;
-  margin: 0 0 var(--sp-3);
-}
-
-.chord-notes li {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 0 10px;
-  border: 2px solid var(--ink);
-  background: var(--ivory-1);
-  color: var(--ink);
-}
-
-.chord-notes .degree { font-size: 14px; color: var(--stone-2); }
-
-.chord-notes li.is-missing {
-  background: var(--miss);
-}
-
-.miss-list {
-  margin: 0 0 var(--sp-2);
-  padding-left: var(--sp-4);
 }

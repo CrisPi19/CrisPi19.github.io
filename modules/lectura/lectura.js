@@ -20,7 +20,8 @@ import {
 import { MAX_BOX } from '../../js/srs.js';
 import { load, save } from '../../js/storage.js';
 import { playNote, playChord, stopPlayback } from '../../js/audio.js';
-import { createStage, bindShortcuts, onButton, bindSoundToggle } from '../../js/shell.js';
+import { createStage, bindShortcuts, onButton, bindSoundToggle, setupSideTools } from '../../js/shell.js';
+import { mountCircleOfFifths } from '../../js/fifths.js';
 import { MARK } from '../../js/layers/piano.js';
 import { ReadingUiLayer } from '../../js/layers/reading-ui.js';
 
@@ -56,6 +57,9 @@ const els = {
 };
 
 /* ---------------- Piezas ---------------- */
+
+mountCircleOfFifths(document.querySelector('.site-header .container'));
+const setNamesButton = setupSideTools({ names: els.namesBtn, listen: els.listenBtn });
 
 const bus = new EventBus();
 const reader = new Reader({ bus });
@@ -137,11 +141,6 @@ function playWritten() {
   else playNote(writtenMidis()[0]);
 }
 
-function listenAction() {
-  if (reader.paused || reader.phase !== 'answered') return; // antes de responder no ayuda al oído
-  playWritten();
-}
-
 /* ---------------- Respuesta y paso al siguiente ---------------- */
 
 let autoNext = null;
@@ -210,7 +209,7 @@ function renderFeedback(detail, correct) {
   els.feedback.className = 'panel feedback is-wrong';
   els.feedback.innerHTML = `${body}
     <p class="small muted">Tiempo ${formatSeconds(detail.timeMs)}. Vuelve a la caja 1: aparecerá pronto de nuevo.
-      Escucha lo escrito con <kbd>Espacio</kbd> y sigue con <kbd>Enter</kbd>.</p>`;
+      Sigue con <kbd>Enter</kbd>.</p>`;
   els.feedback.hidden = false;
 }
 
@@ -260,7 +259,9 @@ function renderButtons() {
   const chords = reader.config.mode === 'chords';
   els.mainBtn.innerHTML = `${chords && !answered ? 'Comprobar' : 'Siguiente'} <kbd>Enter</kbd>`;
   els.mainBtn.disabled = reader.paused || (!answered && !chords);
-  els.listenBtn.disabled = reader.paused || !answered;
+  // Lectura no usa "escuchar": el botón queda en gris para decir que aquí no aplica
+  // (los acordes igual suenan solos al confirmar).
+  els.listenBtn.disabled = true;
   els.clearBtn.hidden = !chords;
   els.clearBtn.disabled = reader.paused || answered;
   const options = document.querySelectorAll('[data-mode], [data-clef], [data-ledger], [data-roots], [data-inversions]');
@@ -344,8 +345,7 @@ bus.on('config:change', () => {
 let showNames = load('showNames', false) === true;
 function renderNamesToggle() {
   piano.setShowNames(showNames);
-  els.namesBtn.setAttribute('aria-pressed', String(showNames));
-  els.namesBtn.innerHTML = `Nombres: ${showNames ? 'sí' : 'no'} <kbd>N</kbd>`;
+  setNamesButton(showNames);
 }
 function toggleNames() {
   if (reader.paused) return;
@@ -451,7 +451,6 @@ els.resetBtn.addEventListener('click', () => {
 
 bindSoundToggle(els.soundToggle);
 onButton(els.mainBtn, mainAction);
-onButton(els.listenBtn, listenAction);
 onButton(els.namesBtn, toggleNames);
 onButton(els.clearBtn, () => reader.clear());
 
@@ -462,7 +461,6 @@ bindShortcuts({
   keys: {
     Enter: mainAction,
     Escape: () => reader.clear(),
-    ' ': listenAction,
     n: toggleNames,
     ArrowLeft: () => stage.shiftRange(-1), // ventana de teclas: C2–C4 ← C3–C5 → C4–C6
     ArrowRight: () => stage.shiftRange(1),

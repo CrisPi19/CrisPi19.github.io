@@ -24,6 +24,10 @@
   <main>
     <div class="stage" id="stage">
       <canvas id="screen" class="screen" aria-label="Piano: las teclas marcadas son las notas de lo que exploras; haz clic para oír cada una"></canvas>
+      <div class="side-tools">
+        <button class="btn tool-btn" type="button" id="names-btn" aria-pressed="false" aria-label="Nombres en las teclas (N)" title="Nombres en las teclas (N)"></button>
+        <button class="btn tool-btn" type="button" id="listen-btn" aria-label="Escuchar (Espacio)" title="Escuchar (Espacio)"></button>
+      </div>
     </div>
 
     <div class="controls container" id="controls">
@@ -39,8 +43,6 @@
         <button class="btn btn-sm" type="button" data-clef="treble">Sol</button>
         <button class="btn btn-sm" type="button" data-clef="bass">Fa</button>
       </div>
-      <button class="btn btn-sm" type="button" id="names-btn" aria-pressed="false">Nombres: no <kbd>N</kbd></button>
-      <button class="btn btn-sm btn-primary" type="button" id="listen-btn">Escuchar <kbd>Espacio</kbd></button>
     </div>
 
     <div class="container">

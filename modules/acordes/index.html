@@ -24,12 +24,14 @@
   <main>
     <div class="stage" id="stage">
       <canvas id="screen" class="screen" aria-label="Piano: haz clic en las teclas del acorde"></canvas>
+      <div class="side-tools">
+        <button class="btn tool-btn" type="button" id="names-btn" aria-pressed="false" aria-label="Nombres en las teclas (N)" title="Nombres en las teclas (N)"></button>
+        <button class="btn tool-btn" type="button" id="listen-btn" aria-label="Escuchar (Espacio)" title="Escuchar (Espacio)"></button>
+      </div>
     </div>
 
     <div class="controls container" id="controls">
       <button class="btn" type="button" id="clear-btn">Borrar <kbd>Esc</kbd></button>
-      <button class="btn" type="button" id="listen-btn">Escuchar <kbd>Espacio</kbd></button>
-      <button class="btn" type="button" id="names-btn" aria-pressed="false">Nombres: no <kbd>N</kbd></button>
       <button class="btn btn-primary" type="button" id="main-btn">Comprobar <kbd>Enter</kbd></button>
     </div>
 

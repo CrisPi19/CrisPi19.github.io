@@ -114,6 +114,14 @@ export function playSequence(midis, { step = 0.3, duration = 0.6, delay = 0 } = 
   return midis.length * step;
 }
 
+/**
+ * ¿Ya está encendido el audio? (hubo un gesto del usuario). Sirve para no programar
+ * sonidos al cargar la página: el navegador los soltaría todos juntos tras el primer clic.
+ */
+export function audioRunning() {
+  return typeof Tone !== 'undefined' && Tone.getContext().state === 'running';
+}
+
 export function isMuted() {
   return muted;
 }
