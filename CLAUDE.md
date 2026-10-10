@@ -100,13 +100,13 @@ el título de las páginas y en la interfaz).
    `lectura.items`; "rápido" ≤ 2 s por nota.
 5. **Intervalos y escalas** ✅: solo **reconocer** (construir nombre → teclas ya
    lo entrenan Acordes y Lectura). Selector "Intervalos | Escalas"; fuente Pentagrama / Oído
-   / Ambos; lo que se oye se responde **nombrando** (botones HTML con atajos 1–9, 0) o
+   / Ambos; lo que se oye se responde **nombrando** (botones HTML, sin atajos) o
    **tocando** (octava exacta): intervalo → la 1.ª nota dorada está dada y la primera tecla
    distinta es la respuesta; escala → tónica y octava doradas, se marcan las de en medio y
    Enter. Lo escrito se nombra siempre. Los botones de respuesta son siempre los 12 (2 filas
    de 6, sin atajos de teclado), aunque no todos estén en rotación. Intervalos: los 12 de la
    octava (2m … 8J; el tritono es UN botón, 4A/5d, escrito al azar como 4A o como 5d; por
-   defecto 3m, 3M, 5J, 8J), forma ascendente / descendente / armónico / mezcla,
+   defecto entran los 12), forma ascendente / descendente / armónico / mezcla,
    alteraciones sí/no, sin líneas adicionales. Escalas: las 12 de `SCALE_TYPES`. Escalas: de la tónica a su
    octava, en la pizarra con las menos líneas adicionales (≤ 2), sin dobles alteraciones;
    tónicas naturales o las 12. Lo que se oye suena en C4–C6 (sol). Al responder: se escribe
@@ -278,7 +278,7 @@ js/theory.js             ← teoría pura (notas, grados, acordes, escalas, inte
 js/explorer.js           ← lógica del Explorador (notas por clave, comparación)
 js/reading.js            ← ejercicio de Lectura (extiende Session; sin DOM)
 js/recognize.js          ← Reconocer intervalos y escalas (módulo 5; extiende Session)
-js/choices.js            ← botones de respuesta múltiple (HTML, atajos 1–9 y 0)
+js/choices.js            ← botones de respuesta múltiple (HTML, sin atajos)
 js/fifths.js             ← ventana del círculo de quintas (común a todos los módulos)
 js/icons.js              ← íconos pixel art de botones HTML (C de nombres, oreja de escuchar)
 js/notation.js           ← diagramación del pentagrama pixel art (sin DOM)

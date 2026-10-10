@@ -72,7 +72,14 @@ const spellingsOf = (interval) => SPELLINGS[interval] ?? [interval];
 /** Nombre corto ('3m', '4A/5d') y largo de una respuesta. */
 export const intervalShort = (id) => (id === 'TT' ? '4A/5d' : INTERVALS[id].short);
 export const intervalName = (id) => (id === 'TT' ? 'Tritono (cuarta aumentada o quinta disminuida)' : INTERVALS[id].name);
-export const DEFAULT_INTERVALS = ['m3', 'M3', 'P5', 'P8'];
+/** De inicio entran los 12 (se pueden quitar en "Intervalos que entran"). */
+export const DEFAULT_INTERVALS = [...RECOGNIZE_INTERVALS];
+
+/**
+ * Versión de la configuración guardada. La 1 empezaba con solo 3m, 3M, 5J y 8J; al pasar
+ * a la 2 los intervalos guardados se reemplazan una vez por los 12 (lo demás se conserva).
+ */
+const CONFIG_VERSION = 2;
 
 export const RECOGNIZE_SCALES = Object.keys(SCALE_TYPES);
 export const DEFAULT_SCALES = ['major', 'minor', 'harmonic', 'melodic'];
@@ -124,7 +131,9 @@ export function sanitizeConfig(saved) {
     const out = Array.isArray(list) ? all.filter((x) => list.includes(x)) : [];
     return out.length ? out : [...fallback];
   };
+  const current = s.v === CONFIG_VERSION;
   return {
+    v: CONFIG_VERSION,
     family: FAMILIES.includes(s.family) ? s.family : 'intervals',
     source: SOURCES.includes(s.source) ? s.source : 'both',
     answer: ANSWERS.includes(s.answer) ? s.answer : 'name',
@@ -132,8 +141,7 @@ export function sanitizeConfig(saved) {
     clef: ['treble', 'bass', 'both'].includes(s.clef) ? s.clef : 'treble',
     accidentals: s.accidentals === true,
     // Guardados de antes: 4A y 5d separados → el tritono; las novenas ya no están.
-    intervals: pick(Array.isArray(s.intervals)
-      ? s.intervals.map((i) => (i === 'A4' || i === 'd5' ? 'TT' : i)) : s.intervals, RECOGNIZE_INTERVALS, DEFAULT_INTERVALS),
+    intervals: current ? pick(s.intervals, RECOGNIZE_INTERVALS, DEFAULT_INTERVALS) : [...DEFAULT_INTERVALS],
     scales: pick(s.scales, RECOGNIZE_SCALES, DEFAULT_SCALES),
     roots: s.roots === 'all' ? 'all' : 'naturals',
   };

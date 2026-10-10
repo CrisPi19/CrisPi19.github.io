@@ -910,9 +910,9 @@ function startWith(rec, id) {
 }
 
 test('reconocer: configuración por defecto e inválida', () => {
-  eq(recConfig({ family: 'x', intervals: ['zz'], scales: [] }), {
-    family: 'intervals', source: 'both', answer: 'name', form: 'asc', clef: 'treble', accidentals: false,
-    intervals: ['m3', 'M3', 'P5', 'P8'], scales: ['major', 'minor', 'harmonic', 'melodic'], roots: 'naturals',
+  eq(recConfig({ v: 2, family: 'x', intervals: ['zz'], scales: [] }), {
+    v: 2, family: 'intervals', source: 'both', answer: 'name', form: 'asc', clef: 'treble', accidentals: false,
+    intervals: RECOGNIZE_INTERVALS, scales: ['major', 'minor', 'harmonic', 'melodic'], roots: 'naturals',
   });
 });
 
@@ -1005,8 +1005,9 @@ test('reconocer: 12 intervalos; el tritono es uno solo, escrito como 4A o 5d', (
     if (events.at(-1)[0] !== 'answer:correct') throw new Error('el tritono no se aceptó');
   }
   eq([...spelled].sort(), ['A4', 'd5']);
-  // Configuraciones guardadas con 4A/5d separados pasan al tritono.
-  eq(recConfig({ intervals: ['A4', 'd5', 'm9', 'P5'] }).intervals, ['TT', 'P5']);
+  // Una configuración de antes (sin versión) pasa a tener los 12; una actual se respeta.
+  eq(recConfig({ intervals: ['m3', 'P5'] }).intervals, RECOGNIZE_INTERVALS);
+  eq(recConfig({ v: 2, intervals: ['m3', 'P5'] }).intervals, ['m3', 'P5']);
 });
 
 test('reconocer: intervalo tocado: la dada solo suena; la primera otra tecla es la respuesta', () => {
@@ -1043,7 +1044,7 @@ test('reconocer: elegir nombre de escala; tocar no responde en una prueba de nom
 });
 
 test('reconocer: ids por prueba; cambiar de familia plantea uno de la nueva', () => {
-  const ids = intervalIds(recConfig({ source: 'both', form: 'mix', intervals: ['m3'] }));
+  const ids = intervalIds(recConfig({ v: 2, source: 'both', form: 'mix', intervals: ['m3'] }));
   eq(ids, ['int|staff|m3|asc', 'int|staff|m3|desc', 'int|staff|m3|harm', 'int|ear|m3|asc', 'int|ear|m3|desc', 'int|ear|m3|harm']);
   const { rec } = makeRec();
   rec.next();
